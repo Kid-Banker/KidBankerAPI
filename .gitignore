@@ -1,0 +1,68 @@
+# ======================
+# NODE MODULES
+# ======================
+node_modules/
+
+# ======================
+# ENVIRONMENT VARIABLES
+# ======================
+.env
+.env.local
+.env.development
+.env.production
+
+# ======================
+# LOG FILES
+# ======================
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ======================
+# RUNTIME DATA
+# ======================
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# ======================
+# COVERAGE TEST
+# ======================
+coverage/
+
+# ======================
+# BUILD FILES
+# ======================
+dist/
+build/
+
+# ======================
+# OS FILES
+# ======================
+.DS_Store
+Thumbs.db
+
+# ======================
+# IDE / EDITOR
+# ======================
+.vscode/
+.idea/
+
+# ======================
+# TEMP FILES
+# ======================
+tmp/
+temp/
+
+# ======================
+# SUPABASE LOCAL (if used)
+# ======================
+.supabase/
+
+# ======================
+# NODE CACHE
+# ======================
+.cache/
