@@ -1,10 +1,17 @@
 const express = require("express");
 const router = express.Router();
 
-router.get("/google", (req, res) => {
-    res.json({
-        message: "Google Authentication",
-    });
-})
+const authController = require("../controllers/authController");
+const authMiddleware = require("../middlewares/authMiddleware");
+
+// router.get("/google", (req, res) => {
+//   res.json({
+//     message: "Google Authentication",
+//   });
+// });
+
+router.post("/google", authController.googleLogin);
+router.post("/register", authController.register);
+router.post("/link-parent", authMiddleware, authController.linkParent);
 
 module.exports = router;
