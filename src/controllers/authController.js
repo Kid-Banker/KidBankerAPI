@@ -1,6 +1,7 @@
 const jwt = require("jsonwebtoken");
 const supabase = require("../config/supabase");
 const { verifyGoogleToken } = require("../services/googleAuthService");
+const activityService = require("../services/activityService");
 
 // auth controller
 exports.googleLogin = async (req, res) => {
@@ -19,6 +20,15 @@ exports.googleLogin = async (req, res) => {
         process.env.JWT_SECRET,
         { expiresIn: "3d" },
       );
+
+      // activity log
+      await activityService.createLog({
+        userId: user.id,
+        action: "LOGIN",
+        entityType: "user",
+        entityId: user.id,
+        description: `${user.name} logged in`,
+      });
 
       return res.json({
         token,
@@ -70,6 +80,15 @@ exports.register = async (req, res) => {
       { expiresIn: "3d" },
     );
 
+    // activity log
+    await activityService.createLog({
+      userId: user.id,
+      action: "REGISTER",
+      entityType: "user",
+      entityId: user.id,
+      description: `${user.name} registered`,
+    });
+
     res.json({ token, user });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -98,6 +117,15 @@ exports.linkParent = async (req, res) => {
         parent_id: parent.id,
       })
       .eq("id", userId);
+
+    // activity log
+    await activityService.createLog({
+      userId: userId,
+      action: "LINK_PARENT",
+      entityType: "user",
+      entityId: parent.id,
+      description: `${req.user.name} linked parent`,
+    });
 
     res.json({ message: "Parent linked successfully" });
   } catch (err) {

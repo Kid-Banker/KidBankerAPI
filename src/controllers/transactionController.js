@@ -63,12 +63,20 @@ exports.createTransaction = async (req, res) => {
         .insert([{ user_id: userId, total_balance: newBalance }]);
     }
 
-    // save activity log
-    await activityService.createLog(
-      userId,
-      "CREATE_TRANSACTIONS",
-      `${type} transaction with amount ${amount} and description ${description}`,
-    );
+    // activity log
+    const action = type === "INCOME" ? "CREATE_INCOME" : "CREATE_EXPENSE";
+    const logDescription =
+      type === "INCOME"
+        ? `Income with amount ${amount}`
+        : `Expense with amount ${amount}`;
+
+    await activityService.createLog({
+      userId: userId,
+      action,
+      entityType: "transaction",
+      entityId: transaction.id,
+      description: logDescription,
+    })
 
     res.json({
       message: "Transaction created successfully",
