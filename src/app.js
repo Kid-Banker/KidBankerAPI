@@ -1,7 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const authRoutes = require("./routes/authRoutes");
-const financeRoutes = require("./routes/financeRoutes");
+const apiRoutes = require("./routes")
 
 const app = express();
 
@@ -18,6 +18,6 @@ app.get("/", (req, res) => {
 app.use("/auth", authRoutes);
 
 // protected routes
-app.use("/api", financeRoutes)
+app.use("/api", apiRoutes)
 
 module.exports = app;
