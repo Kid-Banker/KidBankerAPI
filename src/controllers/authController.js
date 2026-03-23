@@ -8,6 +8,7 @@ exports.googleLogin = async (req, res) => {
   try {
     const { idToken } = req.body;
     const googleUser = await verifyGoogleToken(idToken);
+
     const { data: user } = await supabase
       .from("users")
       .select("*")
@@ -16,7 +17,7 @@ exports.googleLogin = async (req, res) => {
 
     if (user) {
       const token = jwt.sign(
-        { id: user.id, role: user.role },
+        { id: user.id, role: user.role, name: user.name },
         process.env.JWT_SECRET,
         { expiresIn: "3d" },
       );
@@ -39,6 +40,7 @@ exports.googleLogin = async (req, res) => {
     return res.json({
       status: "Register Required",
       user: googleUser,
+      need_google_token: true,
     });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -48,7 +50,20 @@ exports.googleLogin = async (req, res) => {
 // register controller
 exports.register = async (req, res) => {
   try {
-    const { name, email, google_id, role } = req.body;
+    const {
+      name,
+      email,
+      google_id,
+      role,
+      google_access_token,
+      google_refresh_token,
+    } = req.body;
+
+    if (!google_refresh_token) {
+      return res.status(400).json({
+        error: "Google refresh token is required",
+      });
+    }
 
     let parent_code = null;
 
@@ -65,6 +80,8 @@ exports.register = async (req, res) => {
           google_id,
           role,
           parent_code,
+          google_access_token,
+          google_refresh_token,
         },
       ])
       .select()
@@ -75,7 +92,7 @@ exports.register = async (req, res) => {
     }
 
     const token = jwt.sign(
-      { id: user.id, role: user.role },
+      { id: user.id, role: user.role, name: user.name },
       process.env.JWT_SECRET,
       { expiresIn: "3d" },
     );
@@ -99,7 +116,12 @@ exports.register = async (req, res) => {
 exports.linkParent = async (req, res) => {
   try {
     const userId = req.user.id;
+    const role = req.user.role;
     const { parent_code } = req.body;
+
+    if (role !== "KID") {
+      return res.status(403).json({ message: "Only kid can link parent" });
+    }
 
     const { data: parent } = await supabase
       .from("users")

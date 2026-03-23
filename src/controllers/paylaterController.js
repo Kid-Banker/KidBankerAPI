@@ -1,6 +1,7 @@
 const app = require("../app");
 const supabase = require("../config/supabase");
 const activityService = require("../services/activityService");
+const googleCalendar = require("../services/googleCalendarService");
 
 // create request paylater controller
 exports.requestPaylater = async (req, res) => {
@@ -111,12 +112,56 @@ exports.approvePaylater = async (req, res) => {
       });
     }
 
+    if (existing.calendar_event_id) {
+      return res.status(400).json({
+        message: "Paylater request already added to Google Calendar",
+      });
+    }
+
+    const { data: kid } = await supabase
+      .from("users")
+      .select("*")
+      .eq("id", existing.user_id)
+      .single();
+
+    const { data: parent } = await supabase
+      .from("users")
+      .select("*")
+      .eq("id", parentId)
+      .single();
+
+    let kidEventId = null;
+    let parentEventId = null;
+
+    // create event for kid
+    if (kid.google_refresh_token) {
+      kidEventId = await googleCalendar.createEvent({
+        accessToken: kid.google_access_token,
+        refreshToken: kid.google_refresh_token,
+        summary: `Paylater: ${existing.name}`,
+        description: `Amount ${existing.amount}`,
+        date: existing.deadline,
+      });
+    }
+
+    // create event for parent
+    if (parent.google_refresh_token) {
+      parentEventId = await googleCalendar.createEvent({
+        accessToken: parent.google_access_token,
+        refreshToken: parent.google_refresh_token,
+        summary: `Kid Request: ${existing.name}`,
+        description: `Amount: ${existing.amount}`,
+        date: existing.deadline,
+      });
+    }
+
     const { data, error } = await supabase
       .from("paylater")
       .update({
         status: "APPROVED",
         approved_by: parentId,
         approved_at: new Date(),
+        calendar_event_id: kidEventId,
       })
       .eq("id", paylaterId)
       .select()
@@ -134,7 +179,7 @@ exports.approvePaylater = async (req, res) => {
     });
 
     res.json({
-      message: "Paylater request approved",
+      message: "Paylater request approved & added to Google Calendar",
       data,
     });
   } catch (error) {
