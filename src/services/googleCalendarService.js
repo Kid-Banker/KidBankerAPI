@@ -1,7 +1,6 @@
 const { google } = require("googleapis");
 
 exports.createEvent = async ({
-  accessToken,
   refreshToken,
   summary,
   description,
@@ -15,7 +14,6 @@ exports.createEvent = async ({
     );
 
     auth.setCredentials({
-      access_token: accessToken,
       refresh_token: refreshToken,
     });
 

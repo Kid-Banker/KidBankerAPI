@@ -6,8 +6,14 @@ const activityService = require("../services/activityService");
 // auth controller
 exports.googleLogin = async (req, res) => {
   try {
-    const { idToken } = req.body;
-    const googleUser = await verifyGoogleToken(idToken);
+    const { id_token, google_refresh_token } = req.body;
+    const googleUser = await verifyGoogleToken(id_token);
+
+    if (!google_refresh_token) {
+      return res.status(400).json({
+        error: "Google refresh token is required",
+      });
+    }
 
     const { data: user } = await supabase
       .from("users")
@@ -16,6 +22,12 @@ exports.googleLogin = async (req, res) => {
       .single();
 
     if (user) {
+      // update refresh token on every login
+      await supabase
+        .from("users")
+        .update({ google_refresh_token: google_refresh_token })
+        .eq("id", user.id);
+
       const token = jwt.sign(
         { id: user.id, role: user.role, name: user.name },
         process.env.JWT_SECRET,
@@ -33,7 +45,7 @@ exports.googleLogin = async (req, res) => {
 
       return res.json({
         token,
-        user,
+        user: { ...user, google_refresh_token: google_refresh_token },
       });
     }
 
@@ -55,7 +67,6 @@ exports.register = async (req, res) => {
       email,
       google_id,
       role,
-      google_access_token,
       google_refresh_token,
     } = req.body;
 
@@ -80,7 +91,6 @@ exports.register = async (req, res) => {
           google_id,
           role,
           parent_code,
-          google_access_token,
           google_refresh_token,
         },
       ])

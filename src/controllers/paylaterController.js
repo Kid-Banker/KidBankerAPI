@@ -184,7 +184,6 @@ exports.approvePaylater = async (req, res) => {
       ].join("\n");
 
       kidEventId = await googleCalendar.createEvent({
-        accessToken: kid.google_access_token,
         refreshToken: kid.google_refresh_token,
         summary: kidSummary,
         description: kidDescription,
@@ -218,7 +217,6 @@ exports.approvePaylater = async (req, res) => {
       ].join("\n");
 
       parentEventId = await googleCalendar.createEvent({
-        accessToken: parent.google_access_token,
         refreshToken: parent.google_refresh_token,
         summary: parentSummary,
         description: parentDescription,
