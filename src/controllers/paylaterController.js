@@ -112,6 +112,12 @@ exports.approvePaylater = async (req, res) => {
       });
     }
 
+    if (existing.status === "REJECTED") {
+      return res.status(400).json({
+        message: "Cannot approve a rejected paylater request",
+      });
+    }
+
     if (existing.calendar_event_id) {
       return res.status(400).json({
         message: "Paylater request already added to Google Calendar",
@@ -133,24 +139,89 @@ exports.approvePaylater = async (req, res) => {
     let kidEventId = null;
     let parentEventId = null;
 
+    const formattedAmount = new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "IDR",
+      minimumFractionDigits: 0,
+    }).format(existing.amount);
+
+    const deadlineFormatted = new Date(existing.deadline).toLocaleDateString(
+      "en-US",
+      { weekday: "long", year: "numeric", month: "long", day: "numeric" }
+    );
+
+    const motivationalQuotes = [
+      "Save today, enjoy the rewards tomorrow! 🌟",
+      "Every penny you manage wisely is an investment in your future! 💰",
+      "Learning to manage money early is your superpower! 🦸",
+      "Great things start with small steps — like this one! 🚀",
+      "You're awesome for being so responsible with your money! ⭐",
+    ];
+    const randomQuote =
+      motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)];
+
     // create event for kid
     if (kid.google_refresh_token) {
+      const kidSummary = `🔔 Paylater Reminder: ${existing.name}`;
+      const kidDescription = [
+        `🏦 KID BANKER — PAYLATER REMINDER`,
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+        ``,
+        `Hey ${kid.name}! 👋`,
+        `Just a friendly reminder — your paylater is coming up!`,
+        ``,
+        `📋 Paylater Details:`,
+        `   • Name     : ${existing.name}`,
+        `   • Amount   : ${formattedAmount}`,
+        `   • Due Date : ${deadlineFormatted}`,
+        `   • Status   : Approved`,
+        ``,
+        `📌 Approved by: ${parent.name}`,
+        ``,
+        `💡 "${randomQuote}"`,
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+        `Powered by Kid Banker 🏦`,
+      ].join("\n");
+
       kidEventId = await googleCalendar.createEvent({
         accessToken: kid.google_access_token,
         refreshToken: kid.google_refresh_token,
-        summary: `Paylater: ${existing.name}`,
-        description: `Amount ${existing.amount}`,
+        summary: kidSummary,
+        description: kidDescription,
         date: existing.deadline,
       });
     }
 
     // create event for parent
     if (parent.google_refresh_token) {
+      const parentSummary = `🔔 Kid's Paylater: ${existing.name} — ${formattedAmount}`;
+      const parentDescription = [
+        `🏦 KID BANKER — PAYLATER NOTIFICATION`,
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+        ``,
+        `Hi ${parent.name}! 👋`,
+        `This is a reminder for a paylater you approved.`,
+        `The due date is coming up soon — here are the details:`,
+        ``,
+        `📋 Paylater Details:`,
+        `   • Name     : ${existing.name}`,
+        `   • Amount   : ${formattedAmount}`,
+        `   • Due Date : ${deadlineFormatted}`,
+        `   • Status   : Approved`,
+        ``,
+        `📌 Requested by: ${kid.name}`,
+        ``,
+        `📊 Tip: Keep track of your kid financial`,
+        `   activities with Kid Banker!`,
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+        `Powered by Kid Banker 🏦`,
+      ].join("\n");
+
       parentEventId = await googleCalendar.createEvent({
         accessToken: parent.google_access_token,
         refreshToken: parent.google_refresh_token,
-        summary: `Kid Request: ${existing.name}`,
-        description: `Amount: ${existing.amount}`,
+        summary: parentSummary,
+        description: parentDescription,
         date: existing.deadline,
       });
     }
@@ -215,6 +286,12 @@ exports.rejectPaylater = async (req, res) => {
     if (existing.status === "REJECTED") {
       return res.status(400).json({
         message: "Paylater request already rejected",
+      });
+    }
+
+    if (existing.status === "APPROVED") {
+      return res.status(400).json({
+        message: "Cannot reject an approved paylater request",
       });
     }
 
