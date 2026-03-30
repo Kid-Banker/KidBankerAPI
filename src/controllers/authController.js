@@ -62,13 +62,7 @@ exports.googleLogin = async (req, res) => {
 // register controller
 exports.register = async (req, res) => {
   try {
-    const {
-      name,
-      email,
-      google_id,
-      role,
-      google_refresh_token,
-    } = req.body;
+    const { name, email, google_id, role, google_refresh_token } = req.body;
 
     if (!google_refresh_token) {
       return res.status(400).json({
@@ -126,12 +120,7 @@ exports.register = async (req, res) => {
 exports.linkParent = async (req, res) => {
   try {
     const userId = req.user.id;
-    const role = req.user.role;
     const { parent_code } = req.body;
-
-    if (role !== "KID") {
-      return res.status(403).json({ message: "Only kid can link parent" });
-    }
 
     const { data: parent } = await supabase
       .from("users")

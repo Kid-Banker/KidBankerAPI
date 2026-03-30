@@ -4,13 +4,6 @@ const activityService = require("../services/activityService");
 exports.createTransaction = async (req, res) => {
   try {
     const userId = req.user.id;
-    const role = req.user.role;
-
-    if (role !== "KID") {
-      return res.status(403).json({
-        message: "Only kid can create transaction",
-      });
-    }
 
     const { type, amount, description } = req.body;
 
@@ -76,7 +69,7 @@ exports.createTransaction = async (req, res) => {
       entityType: "transaction",
       entityId: transaction.id,
       description: logDescription,
-    })
+    });
 
     res.json({
       message: "Transaction created successfully",

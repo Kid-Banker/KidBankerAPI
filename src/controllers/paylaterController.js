@@ -7,13 +7,6 @@ const googleCalendar = require("../services/googleCalendarService");
 exports.requestPaylater = async (req, res) => {
   try {
     const userId = req.user.id;
-    const role = req.user.role;
-
-    if (role !== "KID") {
-      return res.status(403).json({
-        message: "Only kid can request paylater",
-      });
-    }
 
     const { name, amount, deadline } = req.body;
 
@@ -54,13 +47,6 @@ exports.requestPaylater = async (req, res) => {
 exports.getRequests = async (req, res) => {
   try {
     const parentId = req.user.id;
-    const role = req.user.role;
-
-    if (role !== "PARENT") {
-      return res.status(403).json({
-        message: "Only parent can see paylater requests",
-      });
-    }
 
     const { data: kids } = await supabase
       .from("users")
@@ -85,14 +71,7 @@ exports.getRequests = async (req, res) => {
 exports.approvePaylater = async (req, res) => {
   try {
     const parentId = req.user.id;
-    const role = req.user.role;
     const paylaterId = req.params.id;
-
-    if (role !== "PARENT") {
-      return res.status(403).json({
-        message: "Only parent can approve paylater",
-      });
-    }
 
     const { data: existing } = await supabase
       .from("paylater")
@@ -147,7 +126,7 @@ exports.approvePaylater = async (req, res) => {
 
     const deadlineFormatted = new Date(existing.deadline).toLocaleDateString(
       "en-US",
-      { weekday: "long", year: "numeric", month: "long", day: "numeric" }
+      { weekday: "long", year: "numeric", month: "long", day: "numeric" },
     );
 
     const motivationalQuotes = [
@@ -260,14 +239,7 @@ exports.approvePaylater = async (req, res) => {
 exports.rejectPaylater = async (req, res) => {
   try {
     const parentId = req.user.id;
-    const role = req.user.role;
     const paylaterId = req.params.id;
-
-    if (role !== "PARENT") {
-      return res.status(403).json({
-        message: "Only parent can reject paylater",
-      });
-    }
 
     const { data: existing } = await supabase
       .from("paylater")
