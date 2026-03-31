@@ -109,6 +109,102 @@ exports.getMySavings = async (userId) => {
   };
 };
 
+// get weekly income
+exports.getWeeklyIncome = async (userId) => {
+  const { monday, sunday } = getWeekRange();
+  const { lastMonday, lastSunday } = getLastWeekRange();
+
+  const { data: thisWeekIncome } = await supabase
+    .from("transactions")
+    .select("amount")
+    .eq("user_id", userId)
+    .eq("type", "INCOME")
+    .gte("created_at", monday.toISOString())
+    .lte("created_at", sunday.toISOString());
+
+  const { data: lastWeekIncome } = await supabase
+    .from("transactions")
+    .select("amount")
+    .eq("user_id", userId)
+    .eq("type", "INCOME")
+    .gte("created_at", lastMonday.toISOString())
+    .lte("created_at", lastSunday.toISOString());
+
+  // helper to sum amounts in an array of transactions
+  const sum = (arr) => arr?.reduce((acc, cur) => acc + cur.amount, 0) || 0;
+
+  const thisWeekIncomeTotal = sum(thisWeekIncome);
+  const lastWeekIncomeTotal = sum(lastWeekIncome);
+  const incomeCount = thisWeekIncome?.length || 0;
+
+  let status = "SAME";
+  let difference = 0;
+
+  if (thisWeekIncomeTotal > lastWeekIncomeTotal) {
+    status = "UP";
+    difference = thisWeekIncomeTotal - lastWeekIncomeTotal;
+  } else if (thisWeekIncomeTotal < lastWeekIncomeTotal) {
+    status = "DOWN";
+    difference = lastWeekIncomeTotal - thisWeekIncomeTotal;
+  }
+
+  return {
+    this_week: thisWeekIncomeTotal,
+    last_week: lastWeekIncomeTotal,
+    income_count: incomeCount,
+    difference,
+    status,
+  };
+};
+
+// get weekly expense
+exports.getWeeklyExpense = async (userId) => {
+  const { monday, sunday } = getWeekRange();
+  const { lastMonday, lastSunday } = getLastWeekRange();
+
+  const { data: thisWeekExpense } = await supabase
+    .from("transactions")
+    .select("amount")
+    .eq("user_id", userId)
+    .eq("type", "EXPENSE")
+    .gte("created_at", monday.toISOString())
+    .lte("created_at", sunday.toISOString());
+
+  const { data: lastWeekExpense } = await supabase
+    .from("transactions")
+    .select("amount")
+    .eq("user_id", userId)
+    .eq("type", "EXPENSE")
+    .gte("created_at", lastMonday.toISOString())
+    .lte("created_at", lastSunday.toISOString());
+
+  // helper to sum amounts in an array of transactions
+  const sum = (arr) => arr?.reduce((acc, cur) => acc + cur.amount, 0) || 0;
+
+  const thisWeekExpenseTotal = sum(thisWeekExpense);
+  const lastWeekExpenseTotal = sum(lastWeekExpense);
+  const expenseCount = thisWeekExpense?.length || 0;
+
+  let status = "SAME";
+  let difference = 0;
+
+  if (thisWeekExpenseTotal > lastWeekExpenseTotal) {
+    status = "UP";
+    difference = thisWeekExpenseTotal - lastWeekExpenseTotal;
+  } else if (thisWeekExpenseTotal < lastWeekExpenseTotal) {
+    status = "DOWN";
+    difference = lastWeekExpenseTotal - thisWeekExpenseTotal;
+  }
+
+  return {
+    this_week: thisWeekExpenseTotal,
+    last_week: lastWeekExpenseTotal,
+    expense_count: expenseCount,
+    difference,
+    status,
+  };
+};
+
 // get weekly report
 exports.getWeeklyReport = async (userId) => {
   const { monday, sunday } = getWeekRange();
@@ -135,7 +231,7 @@ exports.getWeeklyReport = async (userId) => {
 
   const thisWeekTotal = sum(thisWeek);
   const lastWeekTotal = sum(lastWeek);
-  const incomeCount = thisWeek?.length || 0;
+  const incomeWeekCount = thisWeek?.length || 0;
 
   let status = "SAME";
   let difference = 0;
@@ -150,7 +246,7 @@ exports.getWeeklyReport = async (userId) => {
 
   return {
     this_week: thisWeekTotal,
-    income_count: incomeCount,
+    income_count: incomeWeekCount,
     difference,
     status,
   };
@@ -224,6 +320,18 @@ exports.getMonthlyOverview = async (userId) => {
   };
 };
 
+// get last 5 transactions
+exports.getLastTransactions = async (userId) => {
+  const { data } = await supabase
+    .from("transactions")
+    .select("description, type")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(5);
+
+  return data || [];
+};
+
 // get paylater data overview
 exports.getPaylaterOverview = async (userId) => {
   const { data } = await supabase
@@ -243,14 +351,26 @@ exports.getPaylaterOverview = async (userId) => {
   );
 };
 
-// get last 5 transactions
-exports.getLastTransactions = async (userId) => {
+// get reminder paylater
+exports.getPaylaterReminder = async (userId) => {
   const { data } = await supabase
-    .from("transactions")
-    .select("description, type")
+    .from("paylater")
+    .select("amount, deadline")
     .eq("user_id", userId)
-    .order("created_at", { ascending: false })
-    .limit(5);
+    .eq("status", "APPROVED")
+    .order("deadline", { ascending: true })
+    .limit(1)
+    .gte("deadline", new Date().toISOString()); // only get future deadlines
 
-  return data || [];
+  if (!data || data.length === 0) {
+    return null;
+  }
+
+  const p = data[0]; // the closest upcoming paylater
+
+  return {
+    amount: p.amount,
+    deadline: p.deadline,
+    is_overdue: new Date(p.deadline) < new Date(),
+  };
 };

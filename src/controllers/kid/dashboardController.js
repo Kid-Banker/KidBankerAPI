@@ -27,6 +27,26 @@ exports.getMySavings = async (req, res) => {
   }
 };
 
+// get weekly income
+exports.getWeeklyIncome = async (req, res) => {
+  try {
+    const data = await dashboardService.getWeeklyIncome(req.user.id);
+    res.json(data);
+  } catch (error) {
+    handleError(res, error);
+  }
+};
+
+// get weekly expense
+exports.getWeeklyExpense = async (req, res) => {
+  try {
+    const data = await dashboardService.getWeeklyExpense(req.user.id);
+    res.json(data);
+  } catch (error) {
+    handleError(res, error);
+  }
+};
+
 // get weekly report
 exports.getWeeklyReport = async (req, res) => {
   try {
@@ -61,6 +81,16 @@ exports.getMonthlyOverview = async (req, res) => {
 exports.getPaylaterOverview = async (req, res) => {
   try {
     const data = await dashboardService.getPaylaterOverview(req.user.id);
+    res.json(data);
+  } catch (error) {
+    handleError(res, error);
+  }
+};
+
+// get paylater reminder
+exports.getPaylaterReminder = async (req, res) => {
+  try {
+    const data = await dashboardService.getPaylaterReminder(req.user.id);
     res.json(data);
   } catch (error) {
     handleError(res, error);
