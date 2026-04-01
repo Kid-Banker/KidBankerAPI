@@ -77,6 +77,30 @@ exports.getMonthlyOverview = async (req, res) => {
   }
 };
 
+// get tranasactions data with pagination
+exports.getTransactions = async (req, res) => {
+  try {
+    const data = await dashboardService.getTransactions(
+      req.user.id,
+      req.query.page,
+      req.query.limit,
+    );
+    res.json(data);
+  } catch (error) {
+    handleError(res, error);
+  }
+};
+
+// get last 5 transactions
+exports.getLastTransactions = async (req, res) => {
+  try {
+    const data = await dashboardService.getLastTransactions(req.user.id);
+    res.json(data);
+  } catch (error) {
+    handleError(res, error);
+  }
+};
+
 // get paylater data overview
 exports.getPaylaterOverview = async (req, res) => {
   try {
@@ -97,15 +121,15 @@ exports.getPaylaterReminder = async (req, res) => {
   }
 };
 
-// get last 5 transactions
-exports.getLastTransactions = async (req, res) => {
+// get paylater status
+exports.getPaylaterStatus = async (req, res) => {
   try {
-    const data = await dashboardService.getLastTransactions(req.user.id);
+    const data = await dashboardService.getPaylaterStatus(req.user.id);
     res.json(data);
   } catch (error) {
     handleError(res, error);
   }
-};
+}
 
 // aggregate data for dashboard
 exports.getDashboard = async (req, res) => {

@@ -320,6 +320,31 @@ exports.getMonthlyOverview = async (userId) => {
   };
 };
 
+// get all transactions with pagination
+exports.getTransactions = async (userId, page = 1, limit = 10) => {
+  const from = (page - 1) * limit;
+  const to = from + limit - 1;
+
+  const { data, count } = await supabase
+    .from("transactions")
+    .select("*", { count: "exact" })
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .range(from, to);
+
+  return {
+    data,
+    pagination: {
+      total: count,
+      per_page: limit,
+      current_page: page,
+      last_page: Math.ceil(count / limit),
+      has_next_page: page * limit < count,
+      has_prev_page: page > 1,
+    },
+  };
+};
+
 // get last 5 transactions
 exports.getLastTransactions = async (userId) => {
   const { data } = await supabase
@@ -354,24 +379,64 @@ exports.getPaylaterOverview = async (userId) => {
 
 // get reminder paylater
 exports.getPaylaterReminder = async (userId) => {
+  const now = new Date().toISOString();
+
   const { data } = await supabase
     .from("paylater")
     .select("amount, deadline")
     .eq("user_id", userId)
     .eq("status", "APPROVED")
+    .gte("deadline", now)
     .order("deadline", { ascending: true })
-    .limit(1)
-    .gte("deadline", new Date().toISOString()); // only get future deadlines
+    .limit(1);
 
   if (!data || data.length === 0) {
     return null;
   }
 
-  const p = data[0]; // the closest upcoming paylater
+  const closest = data[0];
+
+  // count upcoming paylater
+  const { count } = await supabase
+    .from("paylater")
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("status", "APPROVED")
+    .gte("deadline", now);
 
   return {
-    amount: p.amount,
-    deadline: p.deadline,
-    is_overdue: new Date(p.deadline) < new Date(),
+    amount: closest.amount,
+    deadline: closest.deadline,
+    is_overdue: new Date(closest.deadline) < new Date(),
+    total_upcoming: count > 0 ? count - 1 : 0,
+  };
+};
+
+// get paylater status
+exports.getPaylaterStatus = async (userId) => {
+  const { data } = await supabase
+    .from("paylater")
+    .select("status")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+
+  let approvedCount = 0;
+  let pendingCount = 0;
+  let rejectedCount = 0;
+
+  data?.forEach((p) => {
+    if (p.status === "APPROVED") {
+      approvedCount++;
+    } else if (p.status === "PENDING") {
+      pendingCount++;
+    } else if (p.status === "REJECTED") {
+      rejectedCount++;
+    }
+  });
+
+  return {
+    approved_count: approvedCount,
+    pending_count: pendingCount,
+    rejected_count: rejectedCount,
   };
 };
