@@ -338,7 +338,8 @@ exports.getPaylaterOverview = async (userId) => {
     .from("paylater")
     .select("*")
     .eq("user_id", userId)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .limit(5);
 
   return (
     data?.map((p) => ({
