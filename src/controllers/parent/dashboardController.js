@@ -70,7 +70,11 @@ exports.getMonthlyOverview = async (req, res) => {
 // get transactions with pagination
 exports.getTransactions = async (req, res) => {
   try {
-    const data = await dashboardService.getTransactions(req.user.id, req.query);
+    const data = await dashboardService.getTransactions(
+      req.user.id,
+      req.query.page,
+      req.query.limit,
+    );
     res.json(data);
   } catch (error) {
     handleError(res, error);

@@ -310,8 +310,11 @@ exports.getMonthlyOverview = async (parentId) => {
 
 // get all transactions with pagionation
 exports.getTransactions = async (parentId, page = 1, limit = 10) => {
-  const from = (page - 1) * limit;
-  const to = from + limit - 1;
+  const parsedPage = parseInt(page, 10) || 1;
+  const parsedLimit = parseInt(limit, 10) || 10;
+
+  const from = (parsedPage - 1) * parsedLimit;
+  const to = from + parsedLimit - 1;
 
   const { data: kid } = await supabase
     .from("users")
@@ -332,11 +335,11 @@ exports.getTransactions = async (parentId, page = 1, limit = 10) => {
     data,
     pagination: {
       total: count,
-      per_page: limit,
-      current_page: page,
-      last_page: Math.ceil(count / limit),
-      has_next_page: page * limit < count,
-      has_prev_page: page > 1,
+      per_page: parsedLimit,
+      current_page: parsedPage,
+      last_page: Math.ceil(count / parsedLimit),
+      has_next_page: parsedPage * parsedLimit < count,
+      has_prev_page: parsedPage > 1,
     },
   };
 };
