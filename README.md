@@ -1,7 +1,7 @@
 # 📘 Kid Banker API Documentation
 
-**Version:** 1.0.0  
-**Last Updated:** March 28, 2026  
+**Version:** 1.2.0  
+**Last Updated:** April 2, 2026  
 **Base URL:** `https://api-kidbanker.vercel.app`
 
 ---
@@ -101,9 +101,13 @@ https:/api-kidbanker.vercel.app
 | Prefix | Deskripsi | Autentikasi |
 |--------|-----------|-------------|
 | `/auth` | Authentication & User Management | Publik / 🔒 |
-| `/api` | Kid Dashboard Data | 🔒 Wajib |
+| `/api/kid` | Kid Dashboard Data | 🔒 Wajib |
+| `/api/parent` | Parent Dashboard Data | 🔒 Wajib |
 | `/api/finance` | Transaksi & Tabungan | 🔒 Wajib |
 | `/api/paylater` | Sistem Paylater | 🔒 Wajib |
+
+**Penjelasan Prefix Dashboard:**
+Prefix `/api/kid` digunakan khusus untuk keseluruhan endpoint statistik dan ringkasan dashboard dilihat dari perspektif Anak (Role `KID`). Sebaliknya, `/api/parent` mencakup seluruh fungsionalitas rekap data, persetujuan riwayat transaksi, serta fungsi agregat dari perspektif Orang Tua (Role `PARENT`) untuk memantau anak-anak yang terhubung. Pemisahan prefix pada dashboard ini ditujukan agar struktur API bersifat termodular sehingga tidak saling tumpang tindih kapabilitas antar *role*.
 
 ---
 
@@ -643,7 +647,7 @@ Kumpulan endpoint ini digunakan untuk menampilkan data statistik dan ringkasan k
 
 ---
 
-#### 🔒 (GET) Get Profile Info → `https://api-kidbanker.domain/api/profile`
+#### 🔒 (GET) Get Profile Info → `https://api-kidbanker.vercel.app/api/kid/profile`
 
 Mengambil informasi profil dasar dari akun anak, termasuk nama orang tua jika sudah terhubung.
 
@@ -665,7 +669,7 @@ Authorization: Bearer <token>
 
 ---
 
-#### 🔒 (GET) Get My Savings → `https://api-kidbanker.domain/api/my-savings`
+#### 🔒 (GET) Get My Savings → `https://api-kidbanker.vercel.app/api/kid/my-savings`
 
 Mengambil total saldo tabungan, nominal transaksi pendapatan terakhir, dan nominal transaksi pengeluaran terakhir.
 
@@ -687,7 +691,7 @@ Authorization: Bearer <token>
 
 ---
 
-#### 🔒 (GET) Get Weekly Income → `https://api-kidbanker.domain/api/weekly-income`
+#### 🔒 (GET) Get Weekly Income → `https://api-kidbanker.vercel.app/api/kid/weekly-income`
 
 Mengambil perbandingan total pemasukan minggu ini dan minggu lalu, serta status persentasenya.
 
@@ -711,7 +715,7 @@ Authorization: Bearer <token>
 
 ---
 
-#### 🔒 (GET) Get Weekly Expense → `https://api-kidbanker.domain/api/weekly-expense`
+#### 🔒 (GET) Get Weekly Expense → `https://api-kidbanker.vercel.app/api/kid/weekly-expense`
 
 Mengambil perbandingan total pengeluaran minggu ini dan minggu lalu, serta status persentasenya.
 
@@ -735,7 +739,7 @@ Authorization: Bearer <token>
 
 ---
 
-#### 🔒 (GET) Get Weekly Report → `https://api-kidbanker.domain/api/weekly-report`
+#### 🔒 (GET) Get Weekly Report → `https://api-kidbanker.vercel.app/api/kid/weekly-report`
 
 Mengambil laporan singkat perbandingan pemasukan mingguan. (Sama seperti Weekly Income, digunakan untuk laporan mingguan ringkas).
 
@@ -758,7 +762,7 @@ Authorization: Bearer <token>
 
 ---
 
-#### 🔒 (GET) Get Weekly Transactions → `https://api-kidbanker.domain/api/weekly-transactions`
+#### 🔒 (GET) Get Weekly Transactions → `https://api-kidbanker.vercel.app/api/kid/weekly-transactions`
 
 Mengambil data total pemasukan dan pengeluaran per hari untuk minggu ini (Senin - Minggu). Cocok digunakan sebagai data chart.
 
@@ -812,7 +816,7 @@ Authorization: Bearer <token>
 
 ---
 
-#### 🔒 (GET) Get Monthly Overview → `https://api-kidbanker.domain/api/monthly-overview`
+#### 🔒 (GET) Get Monthly Overview → `https://api-kidbanker.vercel.app/api/kid/monthly-overview`
 
 Mengambil perhitungan jumlah (frekuensi) transaksi pemasukan dan pengeluaran untuk bulan ini secara akumulatif.
 
@@ -834,7 +838,7 @@ Authorization: Bearer <token>
 
 ---
 
-#### 🔒 (GET) Get Paylater Overview → `https://api-kidbanker.domain/api/paylater-overview`
+#### 🔒 (GET) Get Paylater Overview → `https://api-kidbanker.vercel.app/api/kid/paylater-overview`
 
 Mengambil daftar ringkas riwayat paylater khusus milik anak beserta status tunggakan jatuh tempo.
 
@@ -860,7 +864,7 @@ Authorization: Bearer <token>
 
 ---
 
-#### 🔒 (GET) Get Paylater Reminder → `https://api-kidbanker.domain/api/paylater-reminder`
+#### 🔒 (GET) Get Paylater Reminder → `https://api-kidbanker.vercel.app/api/kid/paylater-reminder`
 
 Mengambil 1 (satu) pengingat paylater terdekat yang sudah disetujui, dan belum melewati atau sama dengan tanggal jatuh tempo.
 
@@ -888,7 +892,7 @@ null
 
 ---
 
-#### 🔒 (GET) Get Last 5 Transactions → `https://api-kidbanker.domain/api/last-transactions`
+#### 🔒 (GET) Get Last 5 Transactions → `https://api-kidbanker.vercel.app/api/kid/last-transactions`
 
 Mengambil deskripsi dan tipe dari 5 transaksi terakhir dari anak yang sedang login.
 
@@ -915,6 +919,345 @@ Authorization: Bearer <token>
 
 ---
 
+#### 🔒 (GET) Get Transactions → `https://api-kidbanker.vercel.app/api/kid/transactions`
+
+Mengambil seluruh daftar transaksi yang pernah dilakukan oleh anak yang bersangkutan.
+
+**Request:**
+
+```
+Authorization: Bearer <token>
+```
+
+**Response (200):**
+
+```json
+[
+    {
+        "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+        "type": "INCOME",
+        "amount": 50000,
+        "description": "Allowance from Dad",
+        "created_at": "2026-03-28T14:00:00.000Z"
+    }
+]
+```
+
+---
+
+#### 🔒 (GET) Get Paylater Status → `https://api-kidbanker.vercel.app/api/kid/paylater-status`
+
+Mengambil metrik ringkas gabungan (pending, disetujui, dan ditolak) terkait seluruh paylater yang pernah diajukan anak.
+
+**Request:**
+
+```
+Authorization: Bearer <token>
+```
+
+**Response (200):**
+
+```json
+{
+    "total_pending": 1,
+    "total_approved": 2,
+    "total_rejected": 0,
+    "total_amount": 100000
+}
+```
+
+---
+
+### 📈 PARENT DASHBOARD — Parent Dashboard Data
+
+Kumpulan endpoint ini digunakan untuk menampilkan data statistik dan ringkasan khusus pada dashboard orang tua (Parent Dashboard). Seluruh endpoint ini memerlukan autentikasi dengan role `PARENT`.
+
+---
+
+#### 🔒 (GET) Get Profile Info → `https://api-kidbanker.vercel.app/api/parent/profile`
+
+Mengambil informasi profil dasar dari akun orang tua.
+
+**Request:**
+
+```
+Authorization: Bearer <token>
+```
+
+**Response (200):**
+
+```json
+{
+    "name": "John Doe",
+    "email": "john@gmail.com",
+    "parent_code": "A1B2C3"
+}
+```
+
+---
+
+#### 🔒 (GET) Get Kid Savings → `https://api-kidbanker.vercel.app/api/parent/kid-savings`
+
+Mengambil daftar total tabungan dari anak-anak yang terhubung.
+
+**Request:**
+
+```
+Authorization: Bearer <token>
+```
+
+**Response (200):**
+
+```json
+[
+    {
+        "user_id": "child-user-id-1",
+        "total_balance": 150000
+    }
+]
+```
+
+---
+
+#### 🔒 (GET) Get Weekly Report → `https://api-kidbanker.vercel.app/api/parent/weekly-report`
+
+Mengambil laporan mingguan dari anak-anak yang terhubung.
+
+**Request:**
+
+```
+Authorization: Bearer <token>
+```
+
+**Response (200):**
+
+```json
+{
+    "this_week": 50000,
+    "income_count": 2,
+    "expense_count": 1,
+    "difference": 20000,
+    "status": "UP"
+}
+```
+
+---
+
+#### 🔒 (GET) Get Monthly Report → `https://api-kidbanker.vercel.app/api/parent/monthly-report`
+
+Mengambil laporan bulanan atas aktivitas keuangan dari anak-anak yang terhubung.
+
+**Request:**
+
+```
+Authorization: Bearer <token>
+```
+
+**Response (200):**
+
+```json
+{
+    "this_month": 150000,
+    "last_month": 120000,
+    "status": "UP"
+}
+```
+
+---
+
+#### 🔒 (GET) Get Weekly Transactions → `https://api-kidbanker.vercel.app/api/parent/weekly-transactions`
+
+Mengambil data grafik pemasukan dan pengeluaran harian selama seminggu terkini dari anak-anak yang terhubung.
+
+**Request:**
+
+```
+Authorization: Bearer <token>
+```
+
+**Response (200):**
+
+```json
+[
+    {
+        "day": "Mon",
+        "income": 10000,
+        "expense": 0
+    }
+]
+```
+
+---
+
+#### 🔒 (GET) Get Monthly Overview → `https://api-kidbanker.vercel.app/api/parent/monthly-overview`
+
+Mengambil frekuensi atau jumlah akumulatif transaksi (pemasukan dan pengeluaran) pada bulan ini untuk seluruh anak.
+
+**Request:**
+
+```
+Authorization: Bearer <token>
+```
+
+**Response (200):**
+
+```json
+{
+    "month": "mar",
+    "income_count": 8,
+    "expense_count": 5
+}
+```
+
+---
+
+#### 🔒 (GET) Get Transactions → `https://api-kidbanker.vercel.app/api/parent/transactions`
+
+Mengambil seluruh daftar riwayat transaksi dari keseluruhan anak yang terhubung.
+
+**Request:**
+
+```
+Authorization: Bearer <token>
+```
+
+**Response (200):**
+
+```json
+[
+    {
+        "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+        "user_id": "child-user-id",
+        "type": "INCOME",
+        "amount": 50000,
+        "description": "Allowance",
+        "created_at": "2026-03-28T14:00:00.000Z"
+    }
+]
+```
+
+---
+
+#### 🔒 (GET) Get Last Transactions → `https://api-kidbanker.vercel.app/api/parent/last-transactions`
+
+Mengambil 5 histori transaksi terbaru (descending) dari gabungan anak-anak yang dikelola.
+
+**Request:**
+
+```
+Authorization: Bearer <token>
+```
+
+**Response (200):**
+
+```json
+[
+    {
+        "description": "Allowance from Dad",
+        "type": "INCOME"
+    }
+]
+```
+
+---
+
+#### 🔒 (GET) Get Paylater Overview → `https://api-kidbanker.vercel.app/api/parent/paylater-overview`
+
+Mengambil deskripsi ringkas riwayat paylater khusus anak-anak yang didampingi beserta status jatuhnya teguran / tempo.
+
+**Request:**
+
+```
+Authorization: Bearer <token>
+```
+
+**Response (200):**
+
+```json
+[
+    {
+        "name": "School Books",
+        "amount": 50000,
+        "deadline": "2026-04-15",
+        "status": "PENDING",
+        "is_overdue": false
+    }
+]
+```
+
+---
+
+#### 🔒 (GET) Get Paylater Pending → `https://api-kidbanker.vercel.app/api/parent/paylater-pending`
+
+Mengambil informasi maupun rincian jumlah paylater yang masih menunggu persetujuan (PENDING).
+
+**Request:**
+
+```
+Authorization: Bearer <token>
+```
+
+**Response (200):**
+
+```json
+[
+    {
+        "id": "p1a2y3l4-a5t6-7890-abcd-ef1234567890",
+        "user_id": "child-user-id-1",
+        "name": "School Books",
+        "amount": 50000,
+        "deadline": "2026-04-15"
+    }
+]
+```
+
+---
+
+#### 🔒 (GET) Get Paylater Reminder → `https://api-kidbanker.vercel.app/api/parent/paylater-reminder`
+
+Mengambil 1 (satu) pengingat paylater paling mendesak dari seluruh anak untuk memantau jatuh temponya.
+
+**Request:**
+
+```
+Authorization: Bearer <token>
+```
+
+**Response (200):**
+
+```json
+{
+    "amount": 50000,
+    "deadline": "2026-04-15",
+    "is_overdue": false
+}
+```
+
+---
+
+#### 🔒 (GET) Get Paylater Status → `https://api-kidbanker.vercel.app/api/parent/paylater-status`
+
+Mendapatkan matriks metrik status penanganan paylater anak (pending, disetujui, ditolak) di pihak parent.
+
+**Request:**
+
+```
+Authorization: Bearer <token>
+```
+
+**Response (200):**
+
+```json
+{
+    "total_pending": 2,
+    "total_approved": 5,
+    "total_rejected": 1,
+    "total_amount": 150000
+}
+```
+
+---
+
 ## 8. Ringkasan Endpoint
 
 | No. | Method | Endpoint | Prefix | Auth | Role | Deskripsi |
@@ -929,16 +1272,30 @@ Authorization: Bearer <token>
 | 8 | `GET` | `/api/paylater/requests` | paylater | 🔒 | PARENT | Lihat daftar paylater |
 | 9 | `PATCH` | `/api/paylater/approve/:id` | paylater | 🔒 | PARENT | Setujui paylater |
 | 10 | `PATCH` | `/api/paylater/reject/:id` | paylater | 🔒 | PARENT | Tolak paylater |
-| 11 | `GET` | `/api/profile` | api | 🔒 | KID | Kid Dashboard Profile |
-| 12 | `GET` | `/api/my-savings` | api | 🔒 | KID | Kid Dashboard Savings |
-| 13 | `GET` | `/api/weekly-income` | api | 🔒 | KID | Kid Dashboard W-Income |
-| 14 | `GET` | `/api/weekly-expense` | api | 🔒 | KID | Kid Dashboard W-Expense |
-| 15 | `GET` | `/api/weekly-report` | api | 🔒 | KID | Kid Dashboard W-Report |
-| 16 | `GET` | `/api/weekly-transactions`| api | 🔒 | KID | Kid Dashboard W-Transactions |
-| 17 | `GET` | `/api/monthly-overview` | api | 🔒 | KID | Kid Dashboard M-Overview |
-| 18 | `GET` | `/api/paylater-overview` | api | 🔒 | KID | Kid Dashboard P-Overview |
-| 19 | `GET` | `/api/paylater-reminder` | api | 🔒 | KID | Kid Dashboard P-Reminder |
-| 20 | `GET` | `/api/last-transactions` | api | 🔒 | KID | Kid Dashboard Last 5 Trx |
+| 11 | `GET` | `/api/kid/profile` | api/kid | 🔒 | KID | Dashboard: Kid Profile Info |
+| 12 | `GET` | `/api/kid/my-savings` | api/kid | 🔒 | KID | Dashboard: Kid My Savings |
+| 13 | `GET` | `/api/kid/weekly-income` | api/kid | 🔒 | KID | Dashboard: Kid Weekly Income |
+| 14 | `GET` | `/api/kid/weekly-expense` | api/kid | 🔒 | KID | Dashboard: Kid Weekly Expense |
+| 15 | `GET` | `/api/kid/weekly-report` | api/kid | 🔒 | KID | Dashboard: Kid Weekly Report |
+| 16 | `GET` | `/api/kid/weekly-transactions`| api/kid | 🔒 | KID | Dashboard: Kid Weekly Transactions |
+| 17 | `GET` | `/api/kid/monthly-overview` | api/kid | 🔒 | KID | Dashboard: Kid Monthly Overview |
+| 18 | `GET` | `/api/kid/transactions` | api/kid | 🔒 | KID | Dashboard: Kid Transactions |
+| 19 | `GET` | `/api/kid/last-transactions` | api/kid | 🔒 | KID | Dashboard: Kid Last 5 Transactions |
+| 20 | `GET` | `/api/kid/paylater-overview` | api/kid | 🔒 | KID | Dashboard: Kid Paylater Overview |
+| 21 | `GET` | `/api/kid/paylater-reminder` | api/kid | 🔒 | KID | Dashboard: Kid Paylater Reminder |
+| 22 | `GET` | `/api/kid/paylater-status` | api/kid | 🔒 | KID | Dashboard: Kid Paylater Status |
+| 23 | `GET` | `/api/parent/profile` | api/parent| 🔒 | PARENT | Dashboard: Parent Profile Info |
+| 24 | `GET` | `/api/parent/kid-savings` | api/parent| 🔒 | PARENT | Dashboard: Parent Kid Savings |
+| 25 | `GET` | `/api/parent/weekly-report` | api/parent| 🔒 | PARENT | Dashboard: Parent Weekly Report |
+| 26 | `GET` | `/api/parent/monthly-report` | api/parent| 🔒 | PARENT | Dashboard: Parent Monthly Report |
+| 27 | `GET` | `/api/parent/weekly-transactions`| api/parent| 🔒 | PARENT | Dashboard: Parent Weekly Transactions |
+| 28 | `GET` | `/api/parent/monthly-overview` | api/parent| 🔒 | PARENT | Dashboard: Parent Monthly Overview |
+| 29 | `GET` | `/api/parent/transactions` | api/parent| 🔒 | PARENT | Dashboard: Parent Transactions |
+| 30 | `GET` | `/api/parent/last-transactions`| api/parent| 🔒 | PARENT | Dashboard: Parent Last Transactions |
+| 31 | `GET` | `/api/parent/paylater-overview`| api/parent| 🔒 | PARENT | Dashboard: Parent Paylater Overview |
+| 32 | `GET` | `/api/parent/paylater-pending` | api/parent| 🔒 | PARENT | Dashboard: Parent Paylater Pending |
+| 33 | `GET` | `/api/parent/paylater-reminder`| api/parent| 🔒 | PARENT | Dashboard: Parent Paylater Reminder |
+| 34 | `GET` | `/api/parent/paylater-status` | api/parent| 🔒 | PARENT | Dashboard: Parent Paylater Status |
 
 ---
 
