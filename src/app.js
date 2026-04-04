@@ -5,7 +5,17 @@ const apiRoutes = require("./routes")
 
 const app = express();
 
-app.use(cors());
+app.use(
+  cors({
+    origin: [
+      "http://localhost:5173",
+      "https://kidbanker.vercel.app",
+    ],
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 app.use(express.json());
 
 app.get("/", (req, res) => {
