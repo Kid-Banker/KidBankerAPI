@@ -94,17 +94,6 @@ exports.approvePaylater = async (parentId, paylaterId) => {
 
   let kidEventId = null;
 
-  const formattedAmount = new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "IDR",
-    minimumFractionDigits: 0,
-  }).format(existing.amount);
-
-  const deadlineFormatted = new Date(existing.deadline).toLocaleDateString(
-    "en-US",
-    { weekday: "long", year: "numeric", month: "long", day: "numeric" },
-  );
-
   const motivationalQuotes = [
     "Save today, enjoy the rewards tomorrow! 🌟",
     "Every penny you manage wisely is an investment in your future! 💰",
@@ -127,8 +116,8 @@ exports.approvePaylater = async (parentId, paylaterId) => {
       ``,
       `📋 Paylater Details:`,
       `   • Name     : ${existing.name}`,
-      `   • Amount   : ${formattedAmount}`,
-      `   • Due Date : ${deadlineFormatted}`,
+      `   • Amount   : ${existing.amount}`,
+      `   • Due Date : ${existing.deadline}`,
       `   • Status   : Approved`,
       ``,
       `📌 Approved by: ${parent.name}`,
@@ -149,7 +138,7 @@ exports.approvePaylater = async (parentId, paylaterId) => {
 
   // create event for parent
   if (parent.google_refresh_token) {
-    const parentSummary = `🔔 Kid's Paylater: ${existing.name} — ${formattedAmount}`;
+    const parentSummary = `🔔 Kid's Paylater: ${existing.name} — ${existing.amount}`;
     const parentDescription = [
       `🏦 KID BANKER — PAYLATER NOTIFICATION`,
       `━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
@@ -160,8 +149,8 @@ exports.approvePaylater = async (parentId, paylaterId) => {
       ``,
       `📋 Paylater Details:`,
       `   • Name     : ${existing.name}`,
-      `   • Amount   : ${formattedAmount}`,
-      `   • Due Date : ${deadlineFormatted}`,
+      `   • Amount   : ${existing.amount}`,
+      `   • Due Date : ${existing.deadline}`,
       `   • Status   : Approved`,
       ``,
       `📌 Requested by: ${kid.name}`,
