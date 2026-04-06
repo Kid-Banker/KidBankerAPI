@@ -1,1328 +1,2093 @@
-# 📘 Kid Banker API Documentation
+# Kid Banker API — Documentation
 
-**Version:** 1.2.0  
-**Last Updated:** April 2, 2026  
+**Versi:** 1.3.0 <br>
+**Terakhir Diperbarui:** 6 April 2026 <br>
 **Base URL:** `https://api-kidbanker.vercel.app`
+
+---
+
+## Daftar Isi
+
+1. [Pendahuluan](#1-pendahuluan)
+2. [Fungsi Utama](#2-fungsi-utama)
+3. [Fitur Unggulan](#3-fitur-unggulan)
+4. [Arsitektur API](#4-arsitektur-api)
+5. [Autentikasi API](#5-autentikasi-api)
+6. [Endpoint](#6-endpoint)
+   - [6.1 Autentikasi](#61-autentikasi)
+   - [6.2 Keuangan (Finance)](#62-keuangan-finance)
+   - [6.3 Paylater](#63-paylater)
+   - [6.4 Dashboard Anak (Kid)](#64-dashboard-anak-kid)
+   - [6.5 Dashboard Orang Tua (Parent)](#65-dashboard-orang-tua-parent)
+7. [Ringkasan Endpoint](#7-ringkasan-endpoint)
+8. [Referensi Kode Error](#8-referensi-kode-error)
 
 ---
 
 ## 1. Pendahuluan
 
-**Kid Banker API** adalah RESTful API yang dirancang untuk mendukung aplikasi manajemen keuangan keluarga. API ini memungkinkan orang tua (*Parent*) dan anak (*Kid*) untuk berkolaborasi dalam mengelola keuangan secara digital, menanamkan literasi finansial sejak dini melalui fitur tabungan, transaksi, dan paylater yang terintegrasi dengan Google Calendar.
+**Kid Banker API** adalah antarmuka pemrograman aplikasi (API) berbasis REST yang dirancang untuk mendukung platform manajemen keuangan keluarga berbasis peran. API ini memungkinkan orang tua (_Parent_) dan anak (_Kid_) untuk berkolaborasi dalam pengelolaan keuangan secara digital, dengan tujuan menanamkan literasi finansial sejak dini.
+
+Sistem ini dibangun di atas **Node.js** dengan framework **Express.js**, menggunakan **Supabase** (PostgreSQL) sebagai basis data, serta terintegrasi dengan **Google OAuth 2.0** untuk autentikasi dan **Google Calendar API** untuk penjadwalan pengingat paylater.
 
 ---
 
 ## 2. Fungsi Utama
 
-| No. | Fungsi | Deskripsi |
-|-----|--------|-----------|
-| 1 | **Authentication** | Autentikasi pengguna melalui Google OAuth 2.0 |
-| 2 | **User Management** | Registrasi, login, dan penghubungan akun Parent-Kid |
-| 3 | **Transaction Management** | Pencatatan transaksi pemasukan (INCOME) dan pengeluaran (EXPENSE) |
-| 4 | **Savings Monitoring** | Pemantauan saldo tabungan secara real-time |
-| 5 | **Paylater System** | Sistem paylater yang memerlukan persetujuan orang tua |
-| 6 | **Google Calendar Integration** | Penjadwalan otomatis jatuh tempo paylater di Google Calendar |
+| No. | Fungsi                    | Deskripsi                                                                      |
+| --- | ------------------------- | ------------------------------------------------------------------------------ |
+| 1   | Autentikasi               | Autentikasi pengguna melalui Google OAuth 2.0 dan penerbitan JWT               |
+| 2   | Manajemen Pengguna        | Registrasi akun, login, dan pengaitan akun Orang Tua–Anak                      |
+| 3   | Manajemen Transaksi       | Pencatatan transaksi pemasukan (INCOME) dan pengeluaran (EXPENSE)              |
+| 4   | Pemantauan Tabungan       | Pemantauan saldo tabungan secara otomatis dan real-time                        |
+| 5   | Sistem Paylater           | Pengajuan, persetujuan, dan penolakan paylater dengan alur otorisasi orang tua |
+| 6   | Integrasi Google Calendar | Penjadwalan pengingat jatuh tempo paylater secara otomatis                     |
+| 7   | Dashboard Statistik       | Laporan keuangan mingguan, bulanan, dan agregat per peran                      |
 
 ---
 
 ## 3. Fitur Unggulan
 
-- 🔐 **Google OAuth 2.0** — Autentikasi aman menggunakan akun Google
-- 👨‍👩‍👧‍👦 **Role-Based Access** — Pembagian hak akses antara Parent dan Kid
-- 💰 **Auto Balance Tracking** — Saldo tabungan otomatis terupdate setiap transaksi
-- 📅 **Google Calendar Sync** — Reminder paylater otomatis di Google Calendar untuk Parent dan Kid
-- 💬 **Motivational Quotes** — Pesan motivasi keuangan pada reminder calendar untuk anak
-- 📊 **Activity Logging** — Pencatatan seluruh aktivitas pengguna
+- **Google OAuth 2.0** — Autentikasi aman tanpa pengelolaan kata sandi secara manual
+- **Role-Based Access Control** — Pemisahan hak akses ketat antara peran Orang Tua dan Anak
+- **Auto Balance Tracking** — Saldo tabungan diperbarui otomatis pada setiap transaksi
+- **Google Calendar Sync** — Pengingat jatuh tempo paylater otomatis dikirim ke kalender Orang Tua dan Anak
+- **Activity Logging** — Seluruh aksi pengguna dicatat untuk kebutuhan audit dan pelacakan
+- **Dashboard Modular** — Setiap metrik tersedia sebagai endpoint mandiri maupun agregat
 
 ---
 
 ## 4. Arsitektur API
 
 ```
-Client (Mobile/Web)
-       │
-       ▼
-┌─────────────────────────────┐
-│      Kid Banker API          │
-│      (Express.js)            │
-├─────────────────────────────┤
-│  /auth       → Auth Routes   │
-│  /api/finance → Finance Routes│
-│  /api/paylater→ Paylater Routes│
-├─────────────────────────────┤
-│  Middleware: JWT Auth         │
-│  Middleware: Role-Based Access│
-├─────────────────────────────┤
-│  Services:                   │
-│  • Google Auth Service       │
-│  • Google Calendar Service   │
-│  • Activity Log Service      │
-├─────────────────────────────┤
-│  Database: Supabase (PgSQL)  │
-│  External: Google APIs       │
-└─────────────────────────────┘
++--------------------------------------------+
+|        Kid Banker API (Express.js)         |
++--------------------------------------------+
+|  /auth           --> Routes Autentikasi    |
+|  /api/finance    --> Routes Keuangan       |
+|  /api/paylater   --> Routes Paylater       |
+|  /api/kid        --> Routes Dashboard Anak |
+|  /api/parent     --> Routes Dashboard OT   |
++--------------------------------------------+
+|  Middleware: JWT Auth (authMiddleware)     |
+|  Middleware: Role Check (roleMiddleware)   |
++--------------------------------------------+
+|  Services:                                 |
+|  · Google Auth Service                     |
+|  · Google Calendar Service                 |
+|  · Activity Log Service                    |
+|  · Paylater Service                        |
+|  · Savings Service                         |
+|  · Transaction Service                     |
+|  · Kid Dashboard Service                   |
+|  · Parent Dashboard Service                |
++--------------------------------------------+
+|  Database: Supabase (PostgreSQL)           |
+|  Eksternal: Google OAuth & Calendar API    |
++--------------------------------------------+
 ```
 
 ---
 
 ## 5. Autentikasi API
 
-API ini menggunakan **JSON Web Token (JWT)** untuk mengamankan endpoint yang memerlukan autentikasi.
+API ini menggunakan **JSON Web Token (JWT)** untuk mengamankan seluruh endpoint yang bersifat privat.
 
-### Cara Penggunaan
+### Cara Penggunaan Token
 
 1. Lakukan login melalui endpoint `/auth/google` untuk mendapatkan `token`.
-2. Sertakan token pada setiap request ke endpoint yang dilindungi:
+2. Sertakan token pada header setiap request ke endpoint yang dilindungi:
 
 ```
 Authorization: Bearer <token>
 ```
 
-### Keterangan Token
+### Spesifikasi Token
 
-| Parameter | Nilai |
-|-----------|-------|
-| Algoritma | HS256 |
-| Masa Berlaku | 3 hari |
-| Payload | `id`, `role`, `name` |
+| Parameter    | Nilai                |
+| ------------ | -------------------- |
+| Algoritma    | HS256                |
+| Masa Berlaku | 3 hari               |
+| Payload      | `id`, `role`, `name` |
 
-> **Catatan:** Endpoint dengan tanda 🔒 memerlukan JWT token pada header `Authorization`.
+> **Catatan:** Seluruh endpoint yang bertanda **[Auth Required]** wajib menyertakan JWT token yang valid pada header `Authorization`. Permintaan tanpa token atau dengan token yang tidak valid akan menghasilkan respons `401 Unauthorized`.
 
 ---
 
-## 6. Base URL
+## 6. Endpoint
+
+---
+
+### 6.1 Autentikasi
+
+Endpoint autentikasi menangani proses login, registrasi, dan pengaitan akun antar pengguna.
+
+---
+
+#### `POST` Google Login
 
 ```
-https:/api-kidbanker.vercel.app
+POST https://api-kidbanker.vercel.app/auth/google
 ```
 
-### Prefix Routing
+Melakukan autentikasi pengguna menggunakan Google OAuth. Jika pengguna sudah terdaftar, sistem mengembalikan JWT token. Jika belum terdaftar, sistem mengembalikan data Google pengguna beserta indikator bahwa registrasi diperlukan.
 
-| Prefix | Deskripsi | Autentikasi |
-|--------|-----------|-------------|
-| `/auth` | Authentication & User Management | Publik / 🔒 |
-| `/api/kid` | Kid Dashboard Data | 🔒 Wajib |
-| `/api/parent` | Parent Dashboard Data | 🔒 Wajib |
-| `/api/finance` | Transaksi & Tabungan | 🔒 Wajib |
-| `/api/paylater` | Sistem Paylater | 🔒 Wajib |
-
-**Penjelasan Prefix Dashboard:**
-Prefix `/api/kid` digunakan khusus untuk keseluruhan endpoint statistik dan ringkasan dashboard dilihat dari perspektif Anak (Role `KID`). Sebaliknya, `/api/parent` mencakup seluruh fungsionalitas rekap data, persetujuan riwayat transaksi, serta fungsi agregat dari perspektif Orang Tua (Role `PARENT`) untuk memantau anak-anak yang terhubung. Pemisahan prefix pada dashboard ini ditujukan agar struktur API bersifat termodular sehingga tidak saling tumpang tindih kapabilitas antar *role*.
-
----
-
-## 7. Endpoint
-
----
-
-### 🔑 AUTH — Authentication & User Management
-
----
-
-#### (POST) Google Login → `https:/api-kidbanker.vercel.app/auth/google`
-
-Melakukan autentikasi pengguna menggunakan Google OAuth. Jika pengguna sudah terdaftar, sistem akan mengembalikan JWT token dan memperbarui `google_refresh_token`. Jika belum terdaftar, sistem akan mengarahkan untuk registrasi.
-
-**Request:**
+**Request Body:**
 
 ```json
 {
-    "id_token": "eyJhbGciOiJSUzI1NiIs...",
-    "google_refresh_token": "1//0eXx..."
+  "id_token": "eyJhbGciOiJSUzI1NiIs...",
+  "google_refresh_token": "1//0eXx..."
 }
 ```
 
-| Field | Type | Required | Deskripsi |
-|-------|------|----------|-----------|
-| `id_token` | `string` | ✅ | Google ID Token dari OAuth flow |
-| `google_refresh_token` | `string` | ✅ | Google Refresh Token untuk integrasi Calendar |
+| Field                  | Tipe     | Wajib | Deskripsi                                                    |
+| ---------------------- | -------- | ----- | ------------------------------------------------------------ |
+| `id_token`             | `string` | Ya    | Google ID Token yang diperoleh dari alur OAuth di sisi klien |
+| `google_refresh_token` | `string` | Ya    | Google Refresh Token untuk keperluan integrasi Calendar      |
 
-**Response (200) — User Terdaftar:**
-
-```json
-{
-    "token": "eyJhbGciOiJIUzI1NiIs...",
-    "user": {
-        "id": "57f8dd4b-d656-4422-95ee-efc8b55d1f13",
-        "name": "John Doe",
-        "email": "john@gmail.com",
-        "role": "PARENT",
-        "google_id": "1123456789",
-        "parent_code": "A1B2C3",
-        "google_refresh_token": "1//0eXx..."
-    }
-}
-```
-
-**Response (200) — User Belum Terdaftar:**
+**Response `200` — Pengguna Terdaftar:**
 
 ```json
 {
-    "status": "Register Required",
-    "user": {
-        "google_id": "1123456789",
-        "name": "John Doe",
-        "email": "john@gmail.com"
-    },
-    "need_google_token": true
-}
-```
-
-**Response (400):**
-
-```json
-{
-    "error": "Google refresh token is required"
-}
-```
-
----
-
-#### (POST) Register → `https:/api-kidbanker.vercel.app/auth/register`
-
-Mendaftarkan pengguna baru ke dalam sistem. Jika role adalah `PARENT`, sistem akan secara otomatis menghasilkan `parent_code` yang digunakan untuk menghubungkan akun anak.
-
-**Request:**
-
-```json
-{
-    "name": "John Doe",
-    "email": "john@gmail.com",
-    "google_id": "1123456789",
+  "token": "eyJhbGciOiJIUzI1NiIs...",
+  "user": {
+    "id": "57f8dd4b-d656-4422-95ee-efc8b55d1f13",
+    "name": "Andika Satrio Nurcahyo",
+    "email": "andikasatrionurcahyo@kidbanker.id",
     "role": "PARENT",
+    "google_id": "112345678901234567890",
+    "parent_code": "A1B2C3",
     "google_refresh_token": "1//0eXx..."
+  }
 }
 ```
 
-| Field | Type | Required | Deskripsi |
-|-------|------|----------|-----------|
-| `name` | `string` | ✅ | Nama lengkap pengguna |
-| `email` | `string` | ✅ | Alamat email pengguna |
-| `google_id` | `string` | ✅ | Google ID dari OAuth |
-| `role` | `string` | ✅ | Role pengguna: `PARENT` atau `KID` |
-| `google_refresh_token` | `string` | ✅ | Google Refresh Token |
-
-**Response (200):**
+**Response `200` — Pengguna Belum Terdaftar:**
 
 ```json
 {
-    "token": "eyJhbGciOiJIUzI1NiIs...",
-    "user": {
-        "id": "57f8dd4b-d656-4422-95ee-efc8b55d1f13",
-        "name": "John Doe",
-        "email": "john@gmail.com",
-        "role": "PARENT",
-        "google_id": "1123456789",
-        "parent_code": "A1B2C3",
-        "google_refresh_token": "1//0eXx..."
-    }
+  "status": "Register Required",
+  "user": {
+    "google_id": "112345678901234567890",
+    "name": "Andika Satrio Nurcahyo",
+    "email": "andikasatrionurcahyo@kidbanker.id"
+  },
+  "need_google_token": true
 }
 ```
 
-**Response (400):**
+**Response `400`:**
 
 ```json
 {
-    "error": "Google refresh token is required"
+  "error": "Google refresh token is required"
+}
+```
+
+**Response `500`:**
+
+```json
+{
+  "message": "Internal server error"
 }
 ```
 
 ---
 
-#### 🔒 (POST) Link Parent → `https:/api-kidbanker.vercel.app/auth/link-parent`
-
-Menghubungkan akun Kid dengan akun Parent menggunakan `parent_code`. Hanya dapat diakses oleh pengguna dengan role `KID`.
-
-**Request:**
+#### `POST` Registrasi
 
 ```
+POST https://api-kidbanker.vercel.app/auth/register
+```
+
+Mendaftarkan pengguna baru ke dalam sistem. Jika peran yang dipilih adalah `PARENT`, sistem akan secara otomatis membuat `parent_code` unik yang digunakan untuk menghubungkan akun anak.
+
+**Request Body:**
+
+```json
+{
+  "name": "Andika Satrio Nurcahyo",
+  "email": "andikasatrionurcahyo@kidbanker.id",
+  "google_id": "112345678901234567890",
+  "role": "PARENT",
+  "google_refresh_token": "1//0eXx..."
+}
+```
+
+| Field                  | Tipe     | Wajib | Deskripsi                                |
+| ---------------------- | -------- | ----- | ---------------------------------------- |
+| `name`                 | `string` | Ya    | Nama lengkap pengguna                    |
+| `email`                | `string` | Ya    | Alamat email pengguna                    |
+| `google_id`            | `string` | Ya    | Google ID yang diperoleh dari alur OAuth |
+| `role`                 | `string` | Ya    | Peran pengguna: `PARENT` atau `KID`      |
+| `google_refresh_token` | `string` | Ya    | Google Refresh Token                     |
+
+**Response `200`:**
+
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiIs...",
+  "user": {
+    "id": "57f8dd4b-d656-4422-95ee-efc8b55d1f13",
+    "name": "Andika Satrio Nurcahyo",
+    "email": "andikasatrionurcahyo@kidbanker.id",
+    "role": "PARENT",
+    "google_id": "112345678901234567890",
+    "parent_code": "A1B2C3",
+    "google_refresh_token": "1//0eXx..."
+  }
+}
+```
+
+**Response `400`:**
+
+```json
+{
+  "error": "Google refresh token is required"
+}
+```
+
+**Response `500`:**
+
+```json
+{
+  "error": "Internal server error"
+}
+```
+
+---
+
+#### `POST` Hubungkan Orang Tua `[Auth Required]` `[KID Only]`
+
+```
+POST https://api-kidbanker.vercel.app/auth/link-parent
 Authorization: Bearer <token>
 ```
 
+Menghubungkan akun Anak dengan akun Orang Tua menggunakan `parent_code`. Endpoint ini hanya dapat diakses oleh pengguna dengan peran `KID`.
+
+**Request Body:**
+
 ```json
 {
-    "parent_code": "A1B2C3"
+  "parent_code": "A1B2C3"
 }
 ```
 
-| Field | Type | Required | Deskripsi |
-|-------|------|----------|-----------|
-| `parent_code` | `string` | ✅ | Kode unik milik Parent |
+| Field         | Tipe     | Wajib | Deskripsi                                  |
+| ------------- | -------- | ----- | ------------------------------------------ |
+| `parent_code` | `string` | Ya    | Kode unik milik Orang Tua yang dihubungkan |
 
-**Response (200):**
+**Response `200`:**
 
 ```json
 {
-    "message": "Parent linked successfully"
+  "message": "Parent linked successfully"
 }
 ```
 
-**Response (400):**
+**Response `400`:**
 
 ```json
 {
-    "message": "Invalid parent code"
+  "message": "Invalid parent code"
 }
 ```
 
-**Response (403):**
+**Response `401`:**
 
 ```json
 {
-    "message": "Only kid can link parent"
+  "message": "Unauthorized"
+}
+```
+
+**Response `403`:**
+
+```json
+{
+  "message": "Forbidden"
+}
+```
+
+**Response `500`:**
+
+```json
+{
+  "message": "Internal server error"
 }
 ```
 
 ---
 
-### 💰 FINANCE — Transaksi & Tabungan
+### 6.2 Keuangan (Finance)
+
+Endpoint keuangan menangani pencatatan transaksi dan pemantauan saldo tabungan. Akses bersifat bergantung pada peran pengguna.
 
 ---
 
-#### 🔒 (POST) Create Transaction → `https:/api-kidbanker.vercel.app/api/finance/transactions`
-
-Membuat transaksi baru. Hanya dapat diakses oleh pengguna dengan role `KID`. Saldo tabungan akan otomatis diperbarui berdasarkan tipe transaksi.
-
-**Request:**
+#### `POST` Buat Transaksi `[Auth Required]` `[KID Only]`
 
 ```
+POST https://api-kidbanker.vercel.app/api/finance/transactions
 Authorization: Bearer <token>
 ```
 
+Membuat catatan transaksi baru. Hanya dapat diakses oleh pengguna dengan peran `KID`. Saldo tabungan akan diperbarui secara otomatis sesuai tipe transaksi yang dicatat.
+
+**Request Body:**
+
 ```json
 {
+  "type": "INCOME",
+  "amount": 50000,
+  "description": "Uang saku dari Ayah"
+}
+```
+
+| Field         | Tipe     | Wajib | Deskripsi                                      |
+| ------------- | -------- | ----- | ---------------------------------------------- |
+| `type`        | `string` | Ya    | Tipe transaksi: `INCOME` atau `EXPENSE`        |
+| `amount`      | `number` | Ya    | Jumlah nominal transaksi (dalam satuan Rupiah) |
+| `description` | `string` | Ya    | Keterangan atau catatan transaksi              |
+
+**Response `200`:**
+
+```json
+{
+  "message": "Transaction created successfully",
+  "data": {
+    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "user_id": "57f8dd4b-d656-4422-95ee-efc8b55d1f13",
     "type": "INCOME",
     "amount": 50000,
-    "description": "Allowance from Dad"
+    "description": "Uang saku dari Ayah",
+    "created_at": "2026-04-06T09:00:00.000Z"
+  }
 }
 ```
 
-| Field | Type | Required | Deskripsi |
-|-------|------|----------|-----------|
-| `type` | `string` | ✅ | Tipe transaksi: `INCOME` atau `EXPENSE` |
-| `amount` | `number` | ✅ | Jumlah nominal transaksi |
-| `description` | `string` | ✅ | Keterangan transaksi |
-
-**Response (200):**
+**Response `401`:**
 
 ```json
 {
-    "message": "Transaction created successfully",
-    "data": {
-        "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-        "user_id": "57f8dd4b-d656-4422-95ee-efc8b55d1f13",
-        "type": "INCOME",
-        "amount": 50000,
-        "description": "Allowance from Dad",
-        "created_at": "2026-03-28T14:00:00.000Z"
-    }
+  "message": "Unauthorized"
 }
 ```
 
-**Response (403):**
+**Response `403`:**
 
 ```json
 {
-    "message": "Only kid can create transaction"
+  "message": "Forbidden"
+}
+```
+
+**Response `500`:**
+
+```json
+{
+  "message": "Internal server error"
 }
 ```
 
 ---
 
-#### 🔒 (GET) Get Transactions → `https:/api-kidbanker.vercel.app/api/finance/transactions`
-
-Mengambil daftar transaksi. **Kid** akan mendapatkan transaksi miliknya sendiri. **Parent** akan mendapatkan seluruh transaksi anak-anak yang terhubung.
-
-**Request:**
+#### `GET` Daftar Transaksi `[Auth Required]` `[KID & PARENT]`
 
 ```
+GET https://api-kidbanker.vercel.app/api/finance/transactions
 Authorization: Bearer <token>
 ```
 
-**Response (200) — Role KID:**
+Mengambil daftar transaksi. Peran `KID` akan mendapatkan seluruh transaksi miliknya sendiri. Peran `PARENT` akan mendapatkan seluruh transaksi anak yang terhubung.
+
+**Response `200` — Peran KID:**
 
 ```json
 [
-    {
-        "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-        "user_id": "57f8dd4b-d656-4422-95ee-efc8b55d1f13",
-        "type": "INCOME",
-        "amount": 50000,
-        "description": "Allowance from Dad",
-        "created_at": "2026-03-28T14:00:00.000Z"
-    }
-]
-```
-
-**Response (200) — Role PARENT:**
-
-```json
-[
-    {
-        "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-        "user_id": "child-user-id-1",
-        "type": "INCOME",
-        "amount": 50000,
-        "description": "Allowance from Dad",
-        "created_at": "2026-03-28T14:00:00.000Z"
-    },
-    {
-        "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
-        "user_id": "child-user-id-1",
-        "type": "EXPENSE",
-        "amount": 10000,
-        "description": "Bought a notebook",
-        "created_at": "2026-03-28T13:00:00.000Z"
-    }
-]
-```
-
----
-
-#### 🔒 (GET) Get Savings → `https:/api-kidbanker.vercel.app/api/finance/savings`
-
-Mengambil informasi saldo tabungan. **Kid** akan mendapatkan saldo miliknya. **Parent** akan mendapatkan saldo seluruh anak yang terhubung.
-
-**Request:**
-
-```
-Authorization: Bearer <token>
-```
-
-**Response (200) — Role KID:**
-
-```json
-{
-    "id": "s1a2v3i4-n5g6-7890-abcd-ef1234567890",
+  {
+    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
     "user_id": "57f8dd4b-d656-4422-95ee-efc8b55d1f13",
-    "total_balance": 40000
-}
-```
-
-**Response (200) — Role PARENT:**
-
-```json
-[
-    {
-        "id": "s1a2v3i4-n5g6-7890-abcd-ef1234567890",
-        "user_id": "child-user-id-1",
-        "total_balance": 40000
-    },
-    {
-        "id": "s2b3c4d5-e6f7-8901-bcde-f12345678901",
-        "user_id": "child-user-id-2",
-        "total_balance": 75000
-    }
-]
-```
-
----
-
-### 📅 PAYLATER — Sistem Paylater
-
----
-
-#### 🔒 (POST) Request Paylater → `https:/api-kidbanker.vercel.app/api/paylater/request`
-
-Membuat permintaan paylater baru. Hanya dapat diakses oleh pengguna dengan role `KID`. Permintaan ini memerlukan persetujuan dari Parent.
-
-**Request:**
-
-```
-Authorization: Bearer <token>
-```
-
-```json
-{
-    "name": "School Books",
+    "type": "INCOME",
     "amount": 50000,
-    "deadline": "2026-04-15"
-}
-```
-
-| Field | Type | Required | Deskripsi |
-|-------|------|----------|-----------|
-| `name` | `string` | ✅ | Nama/keperluan paylater |
-| `amount` | `number` | ✅ | Jumlah nominal paylater |
-| `deadline` | `string` | ✅ | Tanggal jatuh tempo (format: `YYYY-MM-DD`) |
-
-**Response (200):**
-
-```json
-{
-    "message": "Paylater request created",
-    "data": {
-        "id": "p1a2y3l4-a5t6-7890-abcd-ef1234567890",
-        "user_id": "57f8dd4b-d656-4422-95ee-efc8b55d1f13",
-        "name": "School Books",
-        "amount": 50000,
-        "deadline": "2026-04-15",
-        "status": "PENDING",
-        "created_at": "2026-03-28T14:00:00.000Z"
-    }
-}
-```
-
-**Response (403):**
-
-```json
-{
-    "message": "Only kid can request paylater"
-}
-```
-
----
-
-#### 🔒 (GET) Get Paylater Requests → `https:/api-kidbanker.vercel.app/api/paylater/requests`
-
-Mengambil seluruh daftar permintaan paylater dari anak-anak yang terhubung. Hanya dapat diakses oleh pengguna dengan role `PARENT`.
-
-**Request:**
-
-```
-Authorization: Bearer <token>
-```
-
-**Response (200):**
-
-```json
-[
-    {
-        "id": "p1a2y3l4-a5t6-7890-abcd-ef1234567890",
-        "user_id": "child-user-id-1",
-        "name": "School Books",
-        "amount": 50000,
-        "deadline": "2026-04-15",
-        "status": "PENDING",
-        "approved_by": null,
-        "approved_at": null,
-        "calendar_event_id": null,
-        "created_at": "2026-03-28T14:00:00.000Z"
-    }
+    "description": "Uang saku dari Ayah",
+    "created_at": "2026-04-06T09:00:00.000Z"
+  }
 ]
 ```
 
-**Response (403):**
-
-```json
-{
-    "message": "Only parent can see paylater requests"
-}
-```
-
----
-
-#### 🔒 (PATCH) Approve Paylater → `https:/api-kidbanker.vercel.app/api/paylater/approve/:id`
-
-Menyetujui permintaan paylater. Hanya dapat diakses oleh pengguna dengan role `PARENT`. Setelah disetujui, sistem akan otomatis membuat event reminder di Google Calendar untuk Kid dan Parent.
-
-**Request:**
-
-```
-Authorization: Bearer <token>
-```
-
-| Parameter | Type | Deskripsi |
-|-----------|------|-----------|
-| `id` | `UUID` | ID paylater yang akan disetujui (URL parameter) |
-
-**Response (200):**
-
-```json
-{
-    "message": "Paylater request approved & added to Google Calendar",
-    "data": {
-        "id": "p1a2y3l4-a5t6-7890-abcd-ef1234567890",
-        "user_id": "child-user-id-1",
-        "name": "School Books",
-        "amount": 50000,
-        "deadline": "2026-04-15",
-        "status": "APPROVED",
-        "approved_by": "parent-user-id",
-        "approved_at": "2026-03-28T14:30:00.000Z",
-        "calendar_event_id": "google-calendar-event-id"
-    }
-}
-```
-
-**Response (400):**
-
-```json
-{
-    "message": "Paylater request already approved"
-}
-```
-
-```json
-{
-    "message": "Cannot approve a rejected paylater request"
-}
-```
-
-**Response (403):**
-
-```json
-{
-    "message": "Only parent can approve paylater"
-}
-```
-
-**Response (404):**
-
-```json
-{
-    "message": "Paylater request not found"
-}
-```
-
----
-
-#### 🔒 (PATCH) Reject Paylater → `https:/api-kidbanker.vercel.app/api/paylater/reject/:id`
-
-Menolak permintaan paylater. Hanya dapat diakses oleh pengguna dengan role `PARENT`.
-
-**Request:**
-
-```
-Authorization: Bearer <token>
-```
-
-| Parameter | Type | Deskripsi |
-|-----------|------|-----------|
-| `id` | `UUID` | ID paylater yang akan ditolak (URL parameter) |
-
-**Response (200):**
-
-```json
-{
-    "message": "Paylater request rejected",
-    "data": {
-        "id": "p1a2y3l4-a5t6-7890-abcd-ef1234567890",
-        "user_id": "child-user-id-1",
-        "name": "School Books",
-        "amount": 50000,
-        "deadline": "2026-04-15",
-        "status": "REJECTED",
-        "approved_by": "parent-user-id",
-        "approved_at": "2026-03-28T14:30:00.000Z"
-    }
-}
-```
-
-**Response (400):**
-
-```json
-{
-    "message": "Paylater request already rejected"
-}
-```
-
-```json
-{
-    "message": "Cannot reject an approved paylater request"
-}
-```
-
-**Response (403):**
-
-```json
-{
-    "message": "Only parent can reject paylater"
-}
-```
-
-**Response (404):**
-
-```json
-{
-    "message": "Paylater request not found"
-}
-```
-
----
-
-### 📊 DASHBOARD — Kid Dashboard Data
-
-Kumpulan endpoint ini digunakan untuk menampilkan data statistik dan ringkasan khusus pada dashboard anak (Kid Dashboard). Seluruh endpoint ini memerlukan autentikasi dengan role `KID`.
-
----
-
-#### 🔒 (GET) Get Profile Info → `https://api-kidbanker.vercel.app/api/kid/profile`
-
-Mengambil informasi profil dasar dari akun anak, termasuk nama orang tua jika sudah terhubung.
-
-**Request:**
-
-```
-Authorization: Bearer <token>
-```
-
-**Response (200):**
-
-```json
-{
-    "name": "Jane Kid",
-    "parent_name": "John Doe",
-    "parent_code": "-"
-}
-```
-
----
-
-#### 🔒 (GET) Get My Savings → `https://api-kidbanker.vercel.app/api/kid/my-savings`
-
-Mengambil total saldo tabungan, nominal transaksi pendapatan terakhir, dan nominal transaksi pengeluaran terakhir.
-
-**Request:**
-
-```
-Authorization: Bearer <token>
-```
-
-**Response (200):**
-
-```json
-{
-    "total_balance": 40000,
-    "last_income": 50000,
-    "last_expense": 10000
-}
-```
-
----
-
-#### 🔒 (GET) Get Weekly Income → `https://api-kidbanker.vercel.app/api/kid/weekly-income`
-
-Mengambil perbandingan total pemasukan minggu ini dan minggu lalu, serta status persentasenya.
-
-**Request:**
-
-```
-Authorization: Bearer <token>
-```
-
-**Response (200):**
-
-```json
-{
-    "this_week": 50000,
-    "last_week": 30000,
-    "income_count": 2,
-    "difference": 20000,
-    "status": "UP"
-}
-```
-
----
-
-#### 🔒 (GET) Get Weekly Expense → `https://api-kidbanker.vercel.app/api/kid/weekly-expense`
-
-Mengambil perbandingan total pengeluaran minggu ini dan minggu lalu, serta status persentasenya.
-
-**Request:**
-
-```
-Authorization: Bearer <token>
-```
-
-**Response (200):**
-
-```json
-{
-    "this_week": 10000,
-    "last_week": 15000,
-    "expense_count": 1,
-    "difference": 5000,
-    "status": "DOWN"
-}
-```
-
----
-
-#### 🔒 (GET) Get Weekly Report → `https://api-kidbanker.vercel.app/api/kid/weekly-report`
-
-Mengambil laporan singkat perbandingan pemasukan mingguan. (Sama seperti Weekly Income, digunakan untuk laporan mingguan ringkas).
-
-**Request:**
-
-```
-Authorization: Bearer <token>
-```
-
-**Response (200):**
-
-```json
-{
-    "this_week": 50000,
-    "income_count": 2,
-    "difference": 20000,
-    "status": "UP"
-}
-```
-
----
-
-#### 🔒 (GET) Get Weekly Transactions → `https://api-kidbanker.vercel.app/api/kid/weekly-transactions`
-
-Mengambil data total pemasukan dan pengeluaran per hari untuk minggu ini (Senin - Minggu). Cocok digunakan sebagai data chart.
-
-**Request:**
-
-```
-Authorization: Bearer <token>
-```
-
-**Response (200):**
+**Response `200` — Peran PARENT:**
 
 ```json
 [
-    {
-        "day": "Mon",
-        "income": 10000,
-        "expense": 0
-    },
-    {
-        "day": "Tue",
-        "income": 0,
-        "expense": 5000
-    },
-    {
-        "day": "Wed",
-        "income": 0,
-        "expense": 0
-    },
-    {
-        "day": "Thu",
-        "income": 40000,
-        "expense": 5000
-    },
-    {
-        "day": "Fri",
-        "income": 0,
-        "expense": 0
-    },
-    {
-        "day": "Sat",
-        "income": 0,
-        "expense": 0
-    },
-    {
-        "day": "Sun",
-        "income": 0,
-        "expense": 0
-    }
+  {
+    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "user_id": "kid-user-id",
+    "type": "INCOME",
+    "amount": 50000,
+    "description": "Uang saku dari Ayah",
+    "created_at": "2026-04-06T09:00:00.000Z"
+  },
+  {
+    "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+    "user_id": "kid-user-id",
+    "type": "EXPENSE",
+    "amount": 10000,
+    "description": "Beli buku pelajaran",
+    "created_at": "2026-04-06T08:00:00.000Z"
+  }
 ]
 ```
 
----
-
-#### 🔒 (GET) Get Monthly Overview → `https://api-kidbanker.vercel.app/api/kid/monthly-overview`
-
-Mengambil perhitungan jumlah (frekuensi) transaksi pemasukan dan pengeluaran untuk bulan ini secara akumulatif.
-
-**Request:**
-
-```
-Authorization: Bearer <token>
-```
-
-**Response (200):**
+**Response `401`:**
 
 ```json
 {
-    "month": "mar",
-    "income_count": 5,
-    "expense_count": 3
+  "message": "Unauthorized"
+}
+```
+
+**Response `403`:**
+
+```json
+{
+  "message": "Forbidden"
+}
+```
+
+**Response `500`:**
+
+```json
+{
+  "message": "Internal server error"
 }
 ```
 
 ---
 
-#### 🔒 (GET) Get Paylater Overview → `https://api-kidbanker.vercel.app/api/kid/paylater-overview`
-
-Mengambil daftar ringkas riwayat paylater khusus milik anak beserta status tunggakan jatuh tempo.
-
-**Request:**
+#### `GET` Informasi Tabungan `[Auth Required]` `[KID & PARENT]`
 
 ```
+GET https://api-kidbanker.vercel.app/api/finance/savings
 Authorization: Bearer <token>
 ```
 
-**Response (200):**
+Mengambil informasi saldo tabungan. Peran `KID` mendapatkan data tabungan miliknya sendiri. Peran `PARENT` mendapatkan data tabungan anak yang terhubung.
+
+**Response `200` — Peran KID:**
 
 ```json
-[
-    {
-        "name": "School Books",
-        "amount": 50000,
-        "deadline": "2026-04-15",
-        "status": "PENDING",
-        "is_overdue": false
-    }
-]
+{
+  "id": "s1a2v3i4-n5g6-7890-abcd-ef1234567890",
+  "user_id": "57f8dd4b-d656-4422-95ee-efc8b55d1f13",
+  "total_balance": 40000
+}
+```
+
+**Response `200` — Peran PARENT:**
+
+```json
+{
+  "id": "s1a2v3i4-n5g6-7890-abcd-ef1234567890",
+  "user_id": "kid-user-id",
+  "total_balance": 40000
+}
+```
+
+**Response `401`:**
+
+```json
+{
+  "message": "Unauthorized"
+}
+```
+
+**Response `403`:**
+
+```json
+{
+  "message": "Forbidden"
+}
+```
+
+**Response `500`:**
+
+```json
+{
+  "message": "Internal server error"
+}
 ```
 
 ---
 
-#### 🔒 (GET) Get Paylater Reminder → `https://api-kidbanker.vercel.app/api/kid/paylater-reminder`
+### 6.3 Paylater
 
-Mengambil 1 (satu) pengingat paylater terdekat yang sudah disetujui, dan belum melewati atau sama dengan tanggal jatuh tempo.
+Endpoint paylater menangani alur pengajuan, persetujuan, dan penolakan pinjaman yang memerlukan otorisasi dari Orang Tua.
 
-**Request:**
+---
+
+#### `POST` Ajukan Paylater `[Auth Required]` `[KID Only]`
 
 ```
+POST https://api-kidbanker.vercel.app/api/paylater/request
 Authorization: Bearer <token>
 ```
 
-**Response (200):**
+Membuat pengajuan paylater baru. Hanya dapat diakses oleh pengguna dengan peran `KID`. Status awal pengajuan adalah `PENDING` hingga mendapat respons dari Orang Tua.
+
+**Request Body:**
 
 ```json
 {
+  "name": "Buku Pelajaran Semester Baru",
+  "amount": 50000,
+  "deadline": "2026-04-15"
+}
+```
+
+| Field      | Tipe     | Wajib | Deskripsi                                          |
+| ---------- | -------- | ----- | -------------------------------------------------- |
+| `name`     | `string` | Ya    | Nama atau keperluan paylater                       |
+| `amount`   | `number` | Ya    | Jumlah nominal yang diajukan (dalam satuan Rupiah) |
+| `deadline` | `string` | Ya    | Tanggal jatuh tempo dalam format `YYYY-MM-DD`      |
+
+**Response `200`:**
+
+```json
+{
+  "message": "Paylater request created",
+  "data": {
+    "id": "p1a2y3l4-a5t6-7890-abcd-ef1234567890",
+    "user_id": "57f8dd4b-d656-4422-95ee-efc8b55d1f13",
+    "name": "Buku Pelajaran Semester Baru",
     "amount": 50000,
     "deadline": "2026-04-15",
-    "is_overdue": false
+    "status": "PENDING",
+    "approved_by": null,
+    "approved_at": null,
+    "calendar_event_id": null,
+    "created_at": "2026-04-06T09:00:00.000Z"
+  }
 }
 ```
 
-**Response (200) - Jika belum ada / sudah tidak relevan:**
+**Response `401`:**
+
+```json
+{
+  "message": "Unauthorized"
+}
+```
+
+**Response `403`:**
+
+```json
+{
+  "message": "Forbidden"
+}
+```
+
+**Response `500`:**
+
+```json
+{
+  "message": "Internal server error"
+}
+```
+
+---
+
+#### `GET` Daftar Pengajuan Paylater `[Auth Required]` `[PARENT Only]`
+
+```
+GET https://api-kidbanker.vercel.app/api/paylater/requests
+Authorization: Bearer <token>
+```
+
+Mengambil seluruh daftar pengajuan paylater dari anak yang terhubung, diurutkan dari yang terbaru. Hanya dapat diakses oleh pengguna dengan peran `PARENT`.
+
+**Response `200`:**
+
+```json
+[
+  {
+    "id": "p1a2y3l4-a5t6-7890-abcd-ef1234567890",
+    "user_id": "kid-user-id",
+    "name": "Buku Pelajaran Semester Baru",
+    "amount": 50000,
+    "deadline": "2026-04-15",
+    "status": "PENDING",
+    "approved_by": null,
+    "approved_at": null,
+    "calendar_event_id": null,
+    "created_at": "2026-04-06T09:00:00.000Z"
+  }
+]
+```
+
+**Response `401`:**
+
+```json
+{
+  "message": "Unauthorized"
+}
+```
+
+**Response `403`:**
+
+```json
+{
+  "message": "Forbidden"
+}
+```
+
+**Response `500`:**
+
+```json
+{
+  "message": "Internal server error"
+}
+```
+
+---
+
+#### `PATCH` Setujui Paylater `[Auth Required]` `[PARENT Only]`
+
+```
+PATCH https://api-kidbanker.vercel.app/api/paylater/approve/:id
+Authorization: Bearer <token>
+```
+
+Menyetujui pengajuan paylater yang statusnya masih `PENDING`. Hanya dapat diakses oleh pengguna dengan peran `PARENT`. Setelah disetujui, sistem akan secara otomatis membuat event pengingat di Google Calendar untuk Anak dan Orang Tua (apabila keduanya telah menghubungkan akun Google Calendar).
+
+**URL Parameter:**
+
+| Parameter | Tipe   | Deskripsi                       |
+| --------- | ------ | ------------------------------- |
+| `id`      | `UUID` | ID paylater yang akan disetujui |
+
+**Response `200`:**
+
+```json
+{
+  "message": "Paylater request approved & added to Google Calendar",
+  "data": {
+    "id": "p1a2y3l4-a5t6-7890-abcd-ef1234567890",
+    "user_id": "kid-user-id",
+    "name": "Buku Pelajaran Semester Baru",
+    "amount": 50000,
+    "deadline": "2026-04-15",
+    "status": "APPROVED",
+    "approved_by": "57f8dd4b-d656-4422-95ee-efc8b55d1f13",
+    "approved_at": "2026-04-06T09:30:00.000Z",
+    "calendar_event_id": "google_calendar_event_id"
+  }
+}
+```
+
+**Response `400`:**
+
+```json
+{
+  "message": "Paylater request already approved"
+}
+```
+
+```json
+{
+  "message": "Cannot approve a rejected paylater request"
+}
+```
+
+```json
+{
+  "message": "Paylater request already added to Google Calendar"
+}
+```
+
+**Response `401`:**
+
+```json
+{
+  "message": "Unauthorized"
+}
+```
+
+**Response `403`:**
+
+```json
+{
+  "message": "Forbidden"
+}
+```
+
+**Response `404`:**
+
+```json
+{
+  "message": "Paylater request not found"
+}
+```
+
+**Response `500`:**
+
+```json
+{
+  "message": "Internal server error"
+}
+```
+
+---
+
+#### `PATCH` Tolak Paylater `[Auth Required]` `[PARENT Only]`
+
+```
+PATCH https://api-kidbanker.vercel.app/api/paylater/reject/:id
+Authorization: Bearer <token>
+```
+
+Menolak pengajuan paylater yang statusnya masih `PENDING`. Hanya dapat diakses oleh pengguna dengan peran `PARENT`.
+
+**URL Parameter:**
+
+| Parameter | Tipe   | Deskripsi                     |
+| --------- | ------ | ----------------------------- |
+| `id`      | `UUID` | ID paylater yang akan ditolak |
+
+**Response `200`:**
+
+```json
+{
+  "message": "Paylater request rejected",
+  "data": {
+    "id": "p1a2y3l4-a5t6-7890-abcd-ef1234567890",
+    "user_id": "kid-user-id",
+    "name": "Buku Pelajaran Semester Baru",
+    "amount": 50000,
+    "deadline": "2026-04-15",
+    "status": "REJECTED",
+    "approved_by": "57f8dd4b-d656-4422-95ee-efc8b55d1f13",
+    "approved_at": "2026-04-06T09:30:00.000Z",
+    "calendar_event_id": null
+  }
+}
+```
+
+**Response `400`:**
+
+```json
+{
+  "message": "Paylater request already rejected"
+}
+```
+
+```json
+{
+  "message": "Cannot reject an approved paylater request"
+}
+```
+
+**Response `401`:**
+
+```json
+{
+  "message": "Unauthorized"
+}
+```
+
+**Response `403`:**
+
+```json
+{
+  "message": "Forbidden"
+}
+```
+
+**Response `404`:**
+
+```json
+{
+  "message": "Paylater request not found"
+}
+```
+
+**Response `500`:**
+
+```json
+{
+  "message": "Internal server error"
+}
+```
+
+---
+
+### 6.4 Dashboard Anak (Kid)
+
+Kumpulan endpoint berikut digunakan untuk menampilkan data statistik dan ringkasan pada dashboard Anak. Seluruh endpoint dalam kelompok ini hanya dapat diakses oleh pengguna dengan peran `KID` dan wajib menyertakan token autentikasi yang valid.
+
+---
+
+#### `GET` Informasi Profil `[Auth Required]` `[KID Only]`
+
+```
+GET https://api-kidbanker.vercel.app/api/kid/profile
+Authorization: Bearer <token>
+```
+
+Mengambil informasi profil dasar dari akun Anak, termasuk nama Orang Tua dan kode orang tua jika sudah terhubung.
+
+**Response `200`:**
+
+```json
+{
+  "name": "Andika Satrio Nurcahyo",
+  "parent_name": "Nama Orang Tua",
+  "parent_code": "A1B2C3"
+}
+```
+
+> Keterangan: `parent_code` bernilai `"-"` apabila akun Anak belum memiliki `parent_code` sendiri. `parent_name` bernilai `null` apabila akun Anak belum terhubung dengan Orang Tua.
+
+**Response `401`:**
+
+```json
+{
+  "message": "Unauthorized"
+}
+```
+
+**Response `403`:**
+
+```json
+{
+  "message": "Forbidden"
+}
+```
+
+**Response `500`:**
+
+```json
+{
+  "message": "Internal server error"
+}
+```
+
+---
+
+#### `GET` Tabungan Saya `[Auth Required]` `[KID Only]`
+
+```
+GET https://api-kidbanker.vercel.app/api/kid/my-savings
+Authorization: Bearer <token>
+```
+
+Mengambil total saldo tabungan, nominal pemasukan terakhir, dan nominal pengeluaran terakhir dari akun Anak.
+
+**Response `200`:**
+
+```json
+{
+  "total_balance": 40000,
+  "last_income": 50000,
+  "last_expense": 10000
+}
+```
+
+**Response `401`:**
+
+```json
+{
+  "message": "Unauthorized"
+}
+```
+
+**Response `403`:**
+
+```json
+{
+  "message": "Forbidden"
+}
+```
+
+**Response `500`:**
+
+```json
+{
+  "message": "Internal server error"
+}
+```
+
+---
+
+#### `GET` Pemasukan Mingguan `[Auth Required]` `[KID Only]`
+
+```
+GET https://api-kidbanker.vercel.app/api/kid/weekly-income
+Authorization: Bearer <token>
+```
+
+Mengambil perbandingan total pemasukan minggu ini dengan minggu lalu, beserta jumlah transaksi dan status perubahan.
+
+**Response `200`:**
+
+```json
+{
+  "this_week": 50000,
+  "last_week": 30000,
+  "income_count": 2,
+  "difference": 20000,
+  "status": "UP"
+}
+```
+
+> Keterangan: Nilai `status` dapat berupa `UP`, `DOWN`, atau `SAME`.
+
+**Response `401`:**
+
+```json
+{
+  "message": "Unauthorized"
+}
+```
+
+**Response `403`:**
+
+```json
+{
+  "message": "Forbidden"
+}
+```
+
+**Response `500`:**
+
+```json
+{
+  "message": "Internal server error"
+}
+```
+
+---
+
+#### `GET` Pengeluaran Mingguan `[Auth Required]` `[KID Only]`
+
+```
+GET https://api-kidbanker.vercel.app/api/kid/weekly-expense
+Authorization: Bearer <token>
+```
+
+Mengambil perbandingan total pengeluaran minggu ini dengan minggu lalu, beserta jumlah transaksi dan status perubahan.
+
+**Response `200`:**
+
+```json
+{
+  "this_week": 10000,
+  "last_week": 15000,
+  "expense_count": 1,
+  "difference": 5000,
+  "status": "DOWN"
+}
+```
+
+> Keterangan: Nilai `status` dapat berupa `UP`, `DOWN`, atau `SAME`.
+
+**Response `401`:**
+
+```json
+{
+  "message": "Unauthorized"
+}
+```
+
+**Response `403`:**
+
+```json
+{
+  "message": "Forbidden"
+}
+```
+
+**Response `500`:**
+
+```json
+{
+  "message": "Internal server error"
+}
+```
+
+---
+
+#### `GET` Laporan Mingguan `[Auth Required]` `[KID Only]`
+
+```
+GET https://api-kidbanker.vercel.app/api/kid/weekly-report
+Authorization: Bearer <token>
+```
+
+Mengambil laporan ringkas perbandingan total pemasukan minggu berjalan dengan minggu sebelumnya.
+
+**Response `200`:**
+
+```json
+{
+  "this_week": 50000,
+  "income_count": 2,
+  "difference": 20000,
+  "status": "UP"
+}
+```
+
+> Keterangan: Nilai `status` dapat berupa `UP`, `DOWN`, atau `SAME`.
+
+**Response `401`:**
+
+```json
+{
+  "message": "Unauthorized"
+}
+```
+
+**Response `403`:**
+
+```json
+{
+  "message": "Forbidden"
+}
+```
+
+**Response `500`:**
+
+```json
+{
+  "message": "Internal server error"
+}
+```
+
+---
+
+#### `GET` Transaksi Mingguan (Chart) `[Auth Required]` `[KID Only]`
+
+```
+GET https://api-kidbanker.vercel.app/api/kid/weekly-transactions
+Authorization: Bearer <token>
+```
+
+Mengambil data total pemasukan dan pengeluaran per hari untuk minggu berjalan (Senin hingga Minggu). Respons dirancang sebagai data sumber untuk visualisasi bar chart.
+
+**Response `200`:**
+
+```json
+[
+  { "day": "Mon", "income": 10000, "expense": 0 },
+  { "day": "Tue", "income": 0, "expense": 5000 },
+  { "day": "Wed", "income": 0, "expense": 0 },
+  { "day": "Thu", "income": 40000, "expense": 5000 },
+  { "day": "Fri", "income": 0, "expense": 0 },
+  { "day": "Sat", "income": 0, "expense": 0 },
+  { "day": "Sun", "income": 0, "expense": 0 }
+]
+```
+
+**Response `401`:**
+
+```json
+{
+  "message": "Unauthorized"
+}
+```
+
+**Response `403`:**
+
+```json
+{
+  "message": "Forbidden"
+}
+```
+
+**Response `500`:**
+
+```json
+{
+  "message": "Internal server error"
+}
+```
+
+---
+
+#### `GET` Ikhtisar Bulanan `[Auth Required]` `[KID Only]`
+
+```
+GET https://api-kidbanker.vercel.app/api/kid/monthly-overview
+Authorization: Bearer <token>
+```
+
+Mengambil frekuensi (jumlah) transaksi pemasukan dan pengeluaran secara akumulatif untuk bulan berjalan.
+
+**Response `200`:**
+
+```json
+{
+  "month": "apr",
+  "income_count": 5,
+  "expense_count": 3
+}
+```
+
+> Keterangan: Nilai `month` adalah singkatan nama bulan dalam bahasa Inggris huruf kecil (contoh: `jan`, `feb`, `mar`).
+
+**Response `401`:**
+
+```json
+{
+  "message": "Unauthorized"
+}
+```
+
+**Response `403`:**
+
+```json
+{
+  "message": "Forbidden"
+}
+```
+
+**Response `500`:**
+
+```json
+{
+  "message": "Internal server error"
+}
+```
+
+---
+
+#### `GET` Ikhtisar Paylater `[Auth Required]` `[KID Only]`
+
+```
+GET https://api-kidbanker.vercel.app/api/kid/paylater-overview
+Authorization: Bearer <token>
+```
+
+Mengambil ringkasan 5 data paylater terbaru milik Anak beserta indikator status keterlambatan.
+
+**Response `200`:**
+
+```json
+[
+  {
+    "name": "Buku Pelajaran Semester Baru",
+    "amount": 50000,
+    "deadline": "2026-04-15",
+    "status": "PENDING",
+    "is_overdue": false
+  }
+]
+```
+
+> Keterangan: Nilai `is_overdue` bernilai `true` apabila tanggal `deadline` telah melewati tanggal saat ini.
+
+**Response `401`:**
+
+```json
+{
+  "message": "Unauthorized"
+}
+```
+
+**Response `403`:**
+
+```json
+{
+  "message": "Forbidden"
+}
+```
+
+**Response `500`:**
+
+```json
+{
+  "message": "Internal server error"
+}
+```
+
+---
+
+#### `GET` Pengingat Paylater `[Auth Required]` `[KID Only]`
+
+```
+GET https://api-kidbanker.vercel.app/api/kid/paylater-reminder
+Authorization: Bearer <token>
+```
+
+Mengambil satu pengingat paylater dengan jatuh tempo paling dekat yang berstatus `APPROVED` dan belum melewati tanggal hari ini.
+
+**Response `200` — Terdapat pengingat aktif:**
+
+```json
+{
+  "amount": 50000,
+  "deadline": "2026-04-15",
+  "is_overdue": false,
+  "total_upcoming": 2
+}
+```
+
+> Keterangan: `total_upcoming` adalah jumlah paylater `APPROVED` lainnya yang belum jatuh tempo, tidak termasuk yang ditampilkan.
+
+**Response `200` — Tidak ada pengingat aktif:**
 
 ```json
 null
 ```
 
----
-
-#### 🔒 (GET) Get Last 5 Transactions → `https://api-kidbanker.vercel.app/api/kid/last-transactions`
-
-Mengambil deskripsi dan tipe dari 5 transaksi terakhir dari anak yang sedang login.
-
-**Request:**
-
-```
-Authorization: Bearer <token>
-```
-
-**Response (200):**
-
-```json
-[
-    {
-        "description": "Allowance from Dad",
-        "type": "INCOME"
-    },
-    {
-        "description": "Bought a notebook",
-        "type": "EXPENSE"
-    }
-]
-```
-
----
-
-#### 🔒 (GET) Get Transactions → `https://api-kidbanker.vercel.app/api/kid/transactions`
-
-Mengambil seluruh daftar transaksi yang pernah dilakukan oleh anak yang bersangkutan.
-
-**Request:**
-
-```
-Authorization: Bearer <token>
-```
-
-**Response (200):**
-
-```json
-[
-    {
-        "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-        "type": "INCOME",
-        "amount": 50000,
-        "description": "Allowance from Dad",
-        "created_at": "2026-03-28T14:00:00.000Z"
-    }
-]
-```
-
----
-
-#### 🔒 (GET) Get Paylater Status → `https://api-kidbanker.vercel.app/api/kid/paylater-status`
-
-Mengambil metrik ringkas gabungan (pending, disetujui, dan ditolak) terkait seluruh paylater yang pernah diajukan anak.
-
-**Request:**
-
-```
-Authorization: Bearer <token>
-```
-
-**Response (200):**
+**Response `401`:**
 
 ```json
 {
-    "total_pending": 1,
-    "total_approved": 2,
-    "total_rejected": 0,
-    "total_amount": 100000
+  "message": "Unauthorized"
+}
+```
+
+**Response `403`:**
+
+```json
+{
+  "message": "Forbidden"
+}
+```
+
+**Response `500`:**
+
+```json
+{
+  "message": "Internal server error"
 }
 ```
 
 ---
 
-### 📈 PARENT DASHBOARD — Parent Dashboard Data
-
-Kumpulan endpoint ini digunakan untuk menampilkan data statistik dan ringkasan khusus pada dashboard orang tua (Parent Dashboard). Seluruh endpoint ini memerlukan autentikasi dengan role `PARENT`.
-
----
-
-#### 🔒 (GET) Get Profile Info → `https://api-kidbanker.vercel.app/api/parent/profile`
-
-Mengambil informasi profil dasar dari akun orang tua.
-
-**Request:**
+#### `GET` Status Paylater `[Auth Required]` `[KID Only]`
 
 ```
+GET https://api-kidbanker.vercel.app/api/kid/paylater-status
 Authorization: Bearer <token>
 ```
 
-**Response (200):**
+Mengambil rekap jumlah paylater berdasarkan status (disetujui, menunggu, dan ditolak) dari seluruh riwayat paylater Anak.
+
+**Response `200`:**
 
 ```json
 {
-    "name": "John Doe",
-    "email": "john@gmail.com",
-    "parent_code": "A1B2C3"
+  "approved_count": 2,
+  "pending_count": 1,
+  "rejected_count": 0
+}
+```
+
+**Response `401`:**
+
+```json
+{
+  "message": "Unauthorized"
+}
+```
+
+**Response `403`:**
+
+```json
+{
+  "message": "Forbidden"
+}
+```
+
+**Response `500`:**
+
+```json
+{
+  "message": "Internal server error"
 }
 ```
 
 ---
 
-#### 🔒 (GET) Get Kid Savings → `https://api-kidbanker.vercel.app/api/parent/kid-savings`
-
-Mengambil daftar total tabungan dari anak-anak yang terhubung.
-
-**Request:**
+#### `GET` 5 Transaksi Terakhir `[Auth Required]` `[KID Only]`
 
 ```
+GET https://api-kidbanker.vercel.app/api/kid/last-transactions
 Authorization: Bearer <token>
 ```
 
-**Response (200):**
+Mengambil deskripsi dan tipe dari 5 transaksi terbaru yang dilakukan oleh Anak.
+
+**Response `200`:**
 
 ```json
 [
-    {
-        "user_id": "child-user-id-1",
-        "total_balance": 150000
-    }
+  {
+    "description": "Uang saku dari Ayah",
+    "type": "INCOME"
+  },
+  {
+    "description": "Beli buku pelajaran",
+    "type": "EXPENSE"
+  }
 ]
 ```
 
----
-
-#### 🔒 (GET) Get Weekly Report → `https://api-kidbanker.vercel.app/api/parent/weekly-report`
-
-Mengambil laporan mingguan dari anak-anak yang terhubung.
-
-**Request:**
-
-```
-Authorization: Bearer <token>
-```
-
-**Response (200):**
+**Response `401`:**
 
 ```json
 {
-    "this_week": 50000,
-    "income_count": 2,
-    "expense_count": 1,
-    "difference": 20000,
-    "status": "UP"
+  "message": "Unauthorized"
+}
+```
+
+**Response `403`:**
+
+```json
+{
+  "message": "Forbidden"
+}
+```
+
+**Response `500`:**
+
+```json
+{
+  "message": "Internal server error"
 }
 ```
 
 ---
 
-#### 🔒 (GET) Get Monthly Report → `https://api-kidbanker.vercel.app/api/parent/monthly-report`
-
-Mengambil laporan bulanan atas aktivitas keuangan dari anak-anak yang terhubung.
-
-**Request:**
+#### `GET` Seluruh Transaksi (Paginasi) `[Auth Required]` `[KID Only]`
 
 ```
+GET https://api-kidbanker.vercel.app/api/kid/transactions
 Authorization: Bearer <token>
 ```
 
-**Response (200):**
+Mengambil seluruh riwayat transaksi milik Anak dengan dukungan paginasi.
+
+**Query Parameter:**
+
+| Parameter | Tipe     | Wajib | Default | Deskripsi                  |
+| --------- | -------- | ----- | ------- | -------------------------- |
+| `page`    | `number` | Tidak | `1`     | Nomor halaman yang diminta |
+| `limit`   | `number` | Tidak | `10`    | Jumlah data per halaman    |
+
+**Response `200`:**
 
 ```json
 {
-    "this_month": 150000,
-    "last_month": 120000,
-    "status": "UP"
+  "data": [
+    {
+      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "user_id": "57f8dd4b-d656-4422-95ee-efc8b55d1f13",
+      "type": "INCOME",
+      "amount": 50000,
+      "description": "Uang saku dari Ayah",
+      "created_at": "2026-04-06T09:00:00.000Z"
+    }
+  ],
+  "pagination": {
+    "total": 25,
+    "per_page": 10,
+    "current_page": 1,
+    "last_page": 3,
+    "has_next_page": true,
+    "has_prev_page": false
+  }
+}
+```
+
+**Response `401`:**
+
+```json
+{
+  "message": "Unauthorized"
+}
+```
+
+**Response `403`:**
+
+```json
+{
+  "message": "Forbidden"
+}
+```
+
+**Response `500`:**
+
+```json
+{
+  "message": "Internal server error"
 }
 ```
 
 ---
 
-#### 🔒 (GET) Get Weekly Transactions → `https://api-kidbanker.vercel.app/api/parent/weekly-transactions`
+### 6.5 Dashboard Orang Tua (Parent)
 
-Mengambil data grafik pemasukan dan pengeluaran harian selama seminggu terkini dari anak-anak yang terhubung.
-
-**Request:**
-
-```
-Authorization: Bearer <token>
-```
-
-**Response (200):**
-
-```json
-[
-    {
-        "day": "Mon",
-        "income": 10000,
-        "expense": 0
-    }
-]
-```
+Kumpulan endpoint berikut digunakan untuk menampilkan data statistik dan ringkasan pada dashboard Orang Tua. Seluruh endpoint dalam kelompok ini hanya dapat diakses oleh pengguna dengan peran `PARENT` dan wajib menyertakan token autentikasi yang valid.
 
 ---
 
-#### 🔒 (GET) Get Monthly Overview → `https://api-kidbanker.vercel.app/api/parent/monthly-overview`
-
-Mengambil frekuensi atau jumlah akumulatif transaksi (pemasukan dan pengeluaran) pada bulan ini untuk seluruh anak.
-
-**Request:**
+#### `GET` Informasi Profil `[Auth Required]` `[PARENT Only]`
 
 ```
+GET https://api-kidbanker.vercel.app/api/parent/profile
 Authorization: Bearer <token>
 ```
 
-**Response (200):**
+Mengambil informasi profil dasar dari akun Orang Tua beserta nama Anak yang terhubung.
+
+**Response `200`:**
 
 ```json
 {
-    "month": "mar",
-    "income_count": 8,
-    "expense_count": 5
+  "name": "Andika Satrio Nurcahyo",
+  "kid_name": "Nama Anak",
+  "parent_code": "A1B2C3"
+}
+```
+
+> Keterangan: `kid_name` bernilai `"-"` apabila belum ada akun Anak yang terhubung.
+
+**Response `401`:**
+
+```json
+{
+  "message": "Unauthorized"
+}
+```
+
+**Response `403`:**
+
+```json
+{
+  "message": "Forbidden"
+}
+```
+
+**Response `500`:**
+
+```json
+{
+  "message": "Internal server error"
 }
 ```
 
 ---
 
-#### 🔒 (GET) Get Transactions → `https://api-kidbanker.vercel.app/api/parent/transactions`
-
-Mengambil seluruh daftar riwayat transaksi dari keseluruhan anak yang terhubung.
-
-**Request:**
+#### `GET` Tabungan Anak `[Auth Required]` `[PARENT Only]`
 
 ```
+GET https://api-kidbanker.vercel.app/api/parent/kid-savings
 Authorization: Bearer <token>
 ```
 
-**Response (200):**
+Mengambil informasi saldo tabungan dari Anak yang terhubung, termasuk nominal pemasukan dan pengeluaran terakhir.
 
-```json
-[
-    {
-        "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-        "user_id": "child-user-id",
-        "type": "INCOME",
-        "amount": 50000,
-        "description": "Allowance",
-        "created_at": "2026-03-28T14:00:00.000Z"
-    }
-]
-```
-
----
-
-#### 🔒 (GET) Get Last Transactions → `https://api-kidbanker.vercel.app/api/parent/last-transactions`
-
-Mengambil 5 histori transaksi terbaru (descending) dari gabungan anak-anak yang dikelola.
-
-**Request:**
-
-```
-Authorization: Bearer <token>
-```
-
-**Response (200):**
-
-```json
-[
-    {
-        "description": "Allowance from Dad",
-        "type": "INCOME"
-    }
-]
-```
-
----
-
-#### 🔒 (GET) Get Paylater Overview → `https://api-kidbanker.vercel.app/api/parent/paylater-overview`
-
-Mengambil deskripsi ringkas riwayat paylater khusus anak-anak yang didampingi beserta status jatuhnya teguran / tempo.
-
-**Request:**
-
-```
-Authorization: Bearer <token>
-```
-
-**Response (200):**
-
-```json
-[
-    {
-        "name": "School Books",
-        "amount": 50000,
-        "deadline": "2026-04-15",
-        "status": "PENDING",
-        "is_overdue": false
-    }
-]
-```
-
----
-
-#### 🔒 (GET) Get Paylater Pending → `https://api-kidbanker.vercel.app/api/parent/paylater-pending`
-
-Mengambil informasi maupun rincian jumlah paylater yang masih menunggu persetujuan (PENDING).
-
-**Request:**
-
-```
-Authorization: Bearer <token>
-```
-
-**Response (200):**
-
-```json
-[
-    {
-        "id": "p1a2y3l4-a5t6-7890-abcd-ef1234567890",
-        "user_id": "child-user-id-1",
-        "name": "School Books",
-        "amount": 50000,
-        "deadline": "2026-04-15"
-    }
-]
-```
-
----
-
-#### 🔒 (GET) Get Paylater Reminder → `https://api-kidbanker.vercel.app/api/parent/paylater-reminder`
-
-Mengambil 1 (satu) pengingat paylater paling mendesak dari seluruh anak untuk memantau jatuh temponya.
-
-**Request:**
-
-```
-Authorization: Bearer <token>
-```
-
-**Response (200):**
+**Response `200`:**
 
 ```json
 {
+  "total_balance": 40000,
+  "last_earned": 50000,
+  "last_spent": 10000
+}
+```
+
+**Response `401`:**
+
+```json
+{
+  "message": "Unauthorized"
+}
+```
+
+**Response `403`:**
+
+```json
+{
+  "message": "Forbidden"
+}
+```
+
+**Response `500`:**
+
+```json
+{
+  "message": "Internal server error"
+}
+```
+
+---
+
+#### `GET` Laporan Mingguan `[Auth Required]` `[PARENT Only]`
+
+```
+GET https://api-kidbanker.vercel.app/api/parent/weekly-report
+Authorization: Bearer <token>
+```
+
+Mengambil laporan perbandingan total pemasukan Anak pada minggu berjalan dibandingkan minggu sebelumnya.
+
+**Response `200`:**
+
+```json
+{
+  "this_week": 50000,
+  "income_count": 2,
+  "difference": 20000,
+  "status": "UP"
+}
+```
+
+> Keterangan: Nilai `status` dapat berupa `UP`, `DOWN`, atau `SAME`.
+
+**Response `401`:**
+
+```json
+{
+  "message": "Unauthorized"
+}
+```
+
+**Response `403`:**
+
+```json
+{
+  "message": "Forbidden"
+}
+```
+
+**Response `500`:**
+
+```json
+{
+  "message": "Internal server error"
+}
+```
+
+---
+
+#### `GET` Laporan Bulanan `[Auth Required]` `[PARENT Only]`
+
+```
+GET https://api-kidbanker.vercel.app/api/parent/monthly-report
+Authorization: Bearer <token>
+```
+
+Mengambil laporan perbandingan total pemasukan Anak pada bulan berjalan dibandingkan bulan sebelumnya.
+
+**Response `200`:**
+
+```json
+{
+  "this_month": 150000,
+  "income_count": 6,
+  "difference": 30000,
+  "status": "UP"
+}
+```
+
+> Keterangan: Nilai `status` dapat berupa `UP`, `DOWN`, atau `SAME`.
+
+**Response `401`:**
+
+```json
+{
+  "message": "Unauthorized"
+}
+```
+
+**Response `403`:**
+
+```json
+{
+  "message": "Forbidden"
+}
+```
+
+**Response `500`:**
+
+```json
+{
+  "message": "Internal server error"
+}
+```
+
+---
+
+#### `GET` Transaksi Mingguan (Chart) `[Auth Required]` `[PARENT Only]`
+
+```
+GET https://api-kidbanker.vercel.app/api/parent/weekly-transactions
+Authorization: Bearer <token>
+```
+
+Mengambil data total pemasukan dan pengeluaran Anak per hari untuk minggu berjalan (Senin hingga Minggu). Respons dirancang sebagai data sumber untuk visualisasi grafik.
+
+**Response `200`:**
+
+```json
+[
+  { "day": "Mon", "income": 10000, "expense": 0 },
+  { "day": "Tue", "income": 0, "expense": 5000 },
+  { "day": "Wed", "income": 0, "expense": 0 },
+  { "day": "Thu", "income": 40000, "expense": 5000 },
+  { "day": "Fri", "income": 0, "expense": 0 },
+  { "day": "Sat", "income": 0, "expense": 0 },
+  { "day": "Sun", "income": 0, "expense": 0 }
+]
+```
+
+**Response `401`:**
+
+```json
+{
+  "message": "Unauthorized"
+}
+```
+
+**Response `403`:**
+
+```json
+{
+  "message": "Forbidden"
+}
+```
+
+**Response `500`:**
+
+```json
+{
+  "message": "Internal server error"
+}
+```
+
+---
+
+#### `GET` Ikhtisar Bulanan `[Auth Required]` `[PARENT Only]`
+
+```
+GET https://api-kidbanker.vercel.app/api/parent/monthly-overview
+Authorization: Bearer <token>
+```
+
+Mengambil frekuensi transaksi pemasukan dan pengeluaran Anak secara akumulatif untuk bulan berjalan.
+
+**Response `200`:**
+
+```json
+{
+  "month": "apr",
+  "income_count": 8,
+  "expense_count": 5
+}
+```
+
+**Response `401`:**
+
+```json
+{
+  "message": "Unauthorized"
+}
+```
+
+**Response `403`:**
+
+```json
+{
+  "message": "Forbidden"
+}
+```
+
+**Response `500`:**
+
+```json
+{
+  "message": "Internal server error"
+}
+```
+
+---
+
+#### `GET` Seluruh Transaksi Anak (Paginasi) `[Auth Required]` `[PARENT Only]`
+
+```
+GET https://api-kidbanker.vercel.app/api/parent/transactions
+Authorization: Bearer <token>
+```
+
+Mengambil seluruh riwayat transaksi Anak yang terhubung dengan dukungan paginasi.
+
+**Query Parameter:**
+
+| Parameter | Tipe     | Wajib | Default | Deskripsi                  |
+| --------- | -------- | ----- | ------- | -------------------------- |
+| `page`    | `number` | Tidak | `1`     | Nomor halaman yang diminta |
+| `limit`   | `number` | Tidak | `10`    | Jumlah data per halaman    |
+
+**Response `200`:**
+
+```json
+{
+  "data": [
+    {
+      "description": "Uang saku dari Ayah",
+      "type": "INCOME",
+      "amount": 50000,
+      "created_at": "2026-04-06T09:00:00.000Z"
+    }
+  ],
+  "pagination": {
+    "total": 25,
+    "per_page": 10,
+    "current_page": 1,
+    "last_page": 3,
+    "has_next_page": true,
+    "has_prev_page": false
+  }
+}
+```
+
+**Response `401`:**
+
+```json
+{
+  "message": "Unauthorized"
+}
+```
+
+**Response `403`:**
+
+```json
+{
+  "message": "Forbidden"
+}
+```
+
+**Response `500`:**
+
+```json
+{
+  "message": "Internal server error"
+}
+```
+
+---
+
+#### `GET` 5 Transaksi Terakhir Anak `[Auth Required]` `[PARENT Only]`
+
+```
+GET https://api-kidbanker.vercel.app/api/parent/last-transactions
+Authorization: Bearer <token>
+```
+
+Mengambil deskripsi dan tipe dari 5 transaksi terbaru Anak yang terhubung.
+
+**Response `200`:**
+
+```json
+[
+  {
+    "description": "Uang saku dari Ayah",
+    "type": "INCOME"
+  },
+  {
+    "description": "Beli buku pelajaran",
+    "type": "EXPENSE"
+  }
+]
+```
+
+**Response `401`:**
+
+```json
+{
+  "message": "Unauthorized"
+}
+```
+
+**Response `403`:**
+
+```json
+{
+  "message": "Forbidden"
+}
+```
+
+**Response `500`:**
+
+```json
+{
+  "message": "Internal server error"
+}
+```
+
+---
+
+#### `GET` Ikhtisar Paylater Anak `[Auth Required]` `[PARENT Only]`
+
+```
+GET https://api-kidbanker.vercel.app/api/parent/paylater-overview
+Authorization: Bearer <token>
+```
+
+Mengambil seluruh riwayat paylater Anak yang terhubung beserta status dan informasi persetujuan.
+
+**Response `200`:**
+
+```json
+[
+  {
+    "name": "Buku Pelajaran Semester Baru",
     "amount": 50000,
     "deadline": "2026-04-15",
-    "is_overdue": false
+    "status": "PENDING",
+    "approved_at": null
+  }
+]
+```
+
+**Response `401`:**
+
+```json
+{
+  "message": "Unauthorized"
+}
+```
+
+**Response `403`:**
+
+```json
+{
+  "message": "Forbidden"
+}
+```
+
+**Response `500`:**
+
+```json
+{
+  "message": "Internal server error"
 }
 ```
 
 ---
 
-#### 🔒 (GET) Get Paylater Status → `https://api-kidbanker.vercel.app/api/parent/paylater-status`
-
-Mendapatkan matriks metrik status penanganan paylater anak (pending, disetujui, ditolak) di pihak parent.
-
-**Request:**
+#### `GET` Paylater Menunggu Persetujuan `[Auth Required]` `[PARENT Only]`
 
 ```
+GET https://api-kidbanker.vercel.app/api/parent/paylater-pending
 Authorization: Bearer <token>
 ```
 
-**Response (200):**
+Mengambil hingga 5 data paylater terbaru yang berstatus `PENDING` dari Anak yang terhubung, diurutkan dari yang terbaru.
+
+**Response `200`:**
+
+```json
+[
+  {
+    "name": "Buku Pelajaran Semester Baru",
+    "status": "PENDING",
+    "created_at": "2026-04-06T09:00:00.000Z"
+  }
+]
+```
+
+**Response `401`:**
 
 ```json
 {
-    "total_pending": 2,
-    "total_approved": 5,
-    "total_rejected": 1,
-    "total_amount": 150000
+  "message": "Unauthorized"
+}
+```
+
+**Response `403`:**
+
+```json
+{
+  "message": "Forbidden"
+}
+```
+
+**Response `500`:**
+
+```json
+{
+  "message": "Internal server error"
 }
 ```
 
 ---
 
-## 8. Ringkasan Endpoint
+#### `GET` Pengingat Paylater Anak `[Auth Required]` `[PARENT Only]`
 
-| No. | Method | Endpoint | Prefix | Auth | Role | Deskripsi |
-|-----|--------|----------|--------|------|------|-----------|
-| 1 | `POST` | `/auth/google` | auth | ❌ | ALL | Google Login |
-| 2 | `POST` | `/auth/register` | auth | ❌ | ALL | Registrasi User |
-| 3 | `POST` | `/auth/link-parent` | auth | 🔒 | KID | Hubungkan akun ke Parent |
-| 4 | `POST` | `/api/finance/transactions` | finance | 🔒 | KID | Buat transaksi baru |
-| 5 | `GET` | `/api/finance/transactions` | finance | 🔒 | ALL | Lihat daftar transaksi |
-| 6 | `GET` | `/api/finance/savings` | finance | 🔒 | ALL | Lihat saldo tabungan |
-| 7 | `POST` | `/api/paylater/request` | paylater | 🔒 | KID | Buat permintaan paylater |
-| 8 | `GET` | `/api/paylater/requests` | paylater | 🔒 | PARENT | Lihat daftar paylater |
-| 9 | `PATCH` | `/api/paylater/approve/:id` | paylater | 🔒 | PARENT | Setujui paylater |
-| 10 | `PATCH` | `/api/paylater/reject/:id` | paylater | 🔒 | PARENT | Tolak paylater |
-| 11 | `GET` | `/api/kid/profile` | api/kid | 🔒 | KID | Dashboard: Kid Profile Info |
-| 12 | `GET` | `/api/kid/my-savings` | api/kid | 🔒 | KID | Dashboard: Kid My Savings |
-| 13 | `GET` | `/api/kid/weekly-income` | api/kid | 🔒 | KID | Dashboard: Kid Weekly Income |
-| 14 | `GET` | `/api/kid/weekly-expense` | api/kid | 🔒 | KID | Dashboard: Kid Weekly Expense |
-| 15 | `GET` | `/api/kid/weekly-report` | api/kid | 🔒 | KID | Dashboard: Kid Weekly Report |
-| 16 | `GET` | `/api/kid/weekly-transactions`| api/kid | 🔒 | KID | Dashboard: Kid Weekly Transactions |
-| 17 | `GET` | `/api/kid/monthly-overview` | api/kid | 🔒 | KID | Dashboard: Kid Monthly Overview |
-| 18 | `GET` | `/api/kid/transactions` | api/kid | 🔒 | KID | Dashboard: Kid Transactions |
-| 19 | `GET` | `/api/kid/last-transactions` | api/kid | 🔒 | KID | Dashboard: Kid Last 5 Transactions |
-| 20 | `GET` | `/api/kid/paylater-overview` | api/kid | 🔒 | KID | Dashboard: Kid Paylater Overview |
-| 21 | `GET` | `/api/kid/paylater-reminder` | api/kid | 🔒 | KID | Dashboard: Kid Paylater Reminder |
-| 22 | `GET` | `/api/kid/paylater-status` | api/kid | 🔒 | KID | Dashboard: Kid Paylater Status |
-| 23 | `GET` | `/api/parent/profile` | api/parent| 🔒 | PARENT | Dashboard: Parent Profile Info |
-| 24 | `GET` | `/api/parent/kid-savings` | api/parent| 🔒 | PARENT | Dashboard: Parent Kid Savings |
-| 25 | `GET` | `/api/parent/weekly-report` | api/parent| 🔒 | PARENT | Dashboard: Parent Weekly Report |
-| 26 | `GET` | `/api/parent/monthly-report` | api/parent| 🔒 | PARENT | Dashboard: Parent Monthly Report |
-| 27 | `GET` | `/api/parent/weekly-transactions`| api/parent| 🔒 | PARENT | Dashboard: Parent Weekly Transactions |
-| 28 | `GET` | `/api/parent/monthly-overview` | api/parent| 🔒 | PARENT | Dashboard: Parent Monthly Overview |
-| 29 | `GET` | `/api/parent/transactions` | api/parent| 🔒 | PARENT | Dashboard: Parent Transactions |
-| 30 | `GET` | `/api/parent/last-transactions`| api/parent| 🔒 | PARENT | Dashboard: Parent Last Transactions |
-| 31 | `GET` | `/api/parent/paylater-overview`| api/parent| 🔒 | PARENT | Dashboard: Parent Paylater Overview |
-| 32 | `GET` | `/api/parent/paylater-pending` | api/parent| 🔒 | PARENT | Dashboard: Parent Paylater Pending |
-| 33 | `GET` | `/api/parent/paylater-reminder`| api/parent| 🔒 | PARENT | Dashboard: Parent Paylater Reminder |
-| 34 | `GET` | `/api/parent/paylater-status` | api/parent| 🔒 | PARENT | Dashboard: Parent Paylater Status |
+```
+GET https://api-kidbanker.vercel.app/api/parent/paylater-reminder
+Authorization: Bearer <token>
+```
 
----
+Mengambil satu pengingat paylater Anak dengan jatuh tempo paling dekat yang berstatus `APPROVED` dan belum melewati tanggal hari ini.
 
-## 9. Error Response
-
-Seluruh endpoint menggunakan format error response yang konsisten:
-
-**Response (401) — Unauthorized:**
+**Response `200` — Terdapat pengingat aktif:**
 
 ```json
 {
-    "message": "Unauthorized"
+  "amount": 50000,
+  "deadline": "2026-04-15",
+  "is_overdue": false,
+  "total_upcoming": 1
 }
 ```
 
-**Response (500) — Internal Server Error:**
+**Response `200` — Tidak ada pengingat aktif:**
+
+```json
+null
+```
+
+**Response `401`:**
 
 ```json
 {
-    "error": "Error message details"
+  "message": "Unauthorized"
+}
+```
+
+**Response `403`:**
+
+```json
+{
+  "message": "Forbidden"
+}
+```
+
+**Response `500`:**
+
+```json
+{
+  "message": "Internal server error"
 }
 ```
 
 ---
 
-> 📌 **Catatan:** Dokumentasi ini disusun berdasarkan source code aktual dari Kid Banker API. Untuk informasi lebih lanjut atau pertanyaan teknis, silakan hubungi tim pengembang.
+#### `GET` Status Paylater Anak `[Auth Required]` `[PARENT Only]`
+
+```
+GET https://api-kidbanker.vercel.app/api/parent/paylater-status
+Authorization: Bearer <token>
+```
+
+Mengambil rekap jumlah paylater berdasarkan status dari seluruh riwayat paylater Anak yang terhubung.
+
+**Response `200`:**
+
+```json
+{
+  "approved_count": 3,
+  "pending_count": 1,
+  "rejected_count": 0
+}
+```
+
+**Response `401`:**
+
+```json
+{
+  "message": "Unauthorized"
+}
+```
+
+**Response `403`:**
+
+```json
+{
+  "message": "Forbidden"
+}
+```
+
+**Response `500`:**
+
+```json
+{
+  "message": "Internal server error"
+}
+```
 
 ---
 
-*Powered by Kid Banker 🏦*
+## 7. Ringkasan Endpoint
+
+| No. | Method  | Endpoint                          | Autentikasi | Peran       | Deskripsi                                           |
+| --- | ------- | --------------------------------- | ----------- | ----------- | --------------------------------------------------- |
+| 1   | `POST`  | `/auth/google`                    | Tidak       | Semua       | Login via Google OAuth                             |
+| 2   | `POST`  | `/auth/register`                  | Tidak       | Semua       | Registrasi akun baru                               |
+| 3   | `POST`  | `/auth/link-parent`               | Ya          | KID         | Hubungkan akun ke Orang Tua                        |
+| 4   | `POST`  | `/api/finance/transactions`       | Ya          | KID         | Buat transaksi baru                                |
+| 5   | `GET`   | `/api/finance/transactions`       | Ya          | KID, PARENT | Lihat daftar transaksi                             |
+| 6   | `GET`   | `/api/finance/savings`            | Ya          | KID, PARENT | Lihat informasi tabungan                           |
+| 7   | `POST`  | `/api/paylater/request`           | Ya          | KID         | Ajukan paylater baru                               |
+| 8   | `GET`   | `/api/paylater/requests`          | Ya          | PARENT      | Lihat daftar pengajuan paylater                    |
+| 9   | `PATCH` | `/api/paylater/approve/:id`       | Ya          | PARENT      | Setujui pengajuan paylater                         |
+| 10  | `PATCH` | `/api/paylater/reject/:id`        | Ya          | PARENT      | Tolak pengajuan paylater                           |
+| 11  | `GET`   | `/api/kid/profile`                | Ya          | KID         | Dashboard Anak: Profil                             |
+| 12  | `GET`   | `/api/kid/my-savings`             | Ya          | KID         | Dashboard Anak: Tabungan Saya                      |
+| 13  | `GET`   | `/api/kid/weekly-income`          | Ya          | KID         | Dashboard Anak: Pemasukan Mingguan                 |
+| 14  | `GET`   | `/api/kid/weekly-expense`         | Ya          | KID         | Dashboard Anak: Pengeluaran Mingguan               |
+| 15  | `GET`   | `/api/kid/weekly-report`          | Ya          | KID         | Dashboard Anak: Laporan Mingguan                   |
+| 16  | `GET`   | `/api/kid/weekly-transactions`    | Ya          | KID         | Dashboard Anak: Transaksi Harian Mingguan          |
+| 17  | `GET`   | `/api/kid/monthly-overview`       | Ya          | KID         | Dashboard Anak: Ikhtisar Bulanan                   |
+| 18  | `GET`   | `/api/kid/transactions`           | Ya          | KID         | Dashboard Anak: Semua Transaksi (Paginasi)         |
+| 19  | `GET`   | `/api/kid/last-transactions`      | Ya          | KID         | Dashboard Anak: 5 Transaksi Terakhir               |
+| 20  | `GET`   | `/api/kid/paylater-overview`      | Ya          | KID         | Dashboard Anak: Ikhtisar Paylater                  |
+| 21  | `GET`   | `/api/kid/paylater-reminder`      | Ya          | KID         | Dashboard Anak: Pengingat Paylater                 |
+| 22  | `GET`   | `/api/kid/paylater-status`        | Ya          | KID         | Dashboard Anak: Status Paylater                    |
+| 23  | `GET`   | `/api/parent/profile`             | Ya          | PARENT      | Dashboard Orang Tua: Profil                        |
+| 24  | `GET`   | `/api/parent/kid-savings`         | Ya          | PARENT      | Dashboard Orang Tua: Tabungan Anak                 |
+| 25  | `GET`   | `/api/parent/weekly-report`       | Ya          | PARENT      | Dashboard Orang Tua: Laporan Mingguan              |
+| 26  | `GET`   | `/api/parent/monthly-report`      | Ya          | PARENT      | Dashboard Orang Tua: Laporan Bulanan               |
+| 27  | `GET`   | `/api/parent/weekly-transactions` | Ya          | PARENT      | Dashboard Orang Tua: Transaksi Harian Mingguan     |
+| 28  | `GET`   | `/api/parent/monthly-overview`    | Ya          | PARENT      | Dashboard Orang Tua: Ikhtisar Bulanan              |
+| 29  | `GET`   | `/api/parent/transactions`        | Ya          | PARENT      | Dashboard Orang Tua: Semua Transaksi (Paginasi)    |
+| 30  | `GET`   | `/api/parent/last-transactions`   | Ya          | PARENT      | Dashboard Orang Tua: 5 Transaksi Terakhir          |
+| 31  | `GET`   | `/api/parent/paylater-overview`   | Ya          | PARENT      | Dashboard Orang Tua: Ikhtisar Paylater Anak        |
+| 32  | `GET`   | `/api/parent/paylater-pending`    | Ya          | PARENT      | Dashboard Orang Tua: Paylater Menunggu Persetujuan |
+| 33  | `GET`   | `/api/parent/paylater-reminder`   | Ya          | PARENT      | Dashboard Orang Tua: Pengingat Paylater Anak       |
+| 34  | `GET`   | `/api/parent/paylater-status`     | Ya          | PARENT      | Dashboard Orang Tua: Status Paylater Anak          |
+
+---
+
+## 8. Referensi Kode Error
+
+Seluruh endpoint menggunakan format dan kode HTTP error yang konsisten berikut ini.
+
+| Kode  | Status                | Keterangan                                                                                                |
+| ----- | --------------------- | --------------------------------------------------------------------------------------------------------- |
+| `400` | Bad Request           | Permintaan tidak valid, data yang dikirim tidak sesuai, atau terdapat kondisi bisnis yang tidak terpenuhi |
+| `401` | Unauthorized          | Token tidak disertakan, tidak valid, atau telah kedaluwarsa                                               |
+| `403` | Forbidden             | Token valid, namun peran pengguna tidak memiliki izin untuk mengakses endpoint ini                        |
+| `404` | Not Found             | Sumber daya yang diminta tidak ditemukan                                                                  |
+| `500` | Internal Server Error | Terjadi kesalahan pada sisi server                                                                        |
+
+**Format Respons Error Umum:**
+
+```json
+{
+  "message": "Deskripsi error yang terjadi"
+}
+```
+
+---
+
+_Dokumentasi ini disusun berdasarkan source code aktual dari Kid Banker API versi 1.3.0._
+_Untuk pertanyaan teknis, silakan hubungi tim pengembang Kid Banker `@andkstrr_` ._
