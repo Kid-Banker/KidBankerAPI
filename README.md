@@ -13,14 +13,15 @@
 3. [Fitur Unggulan](#3-fitur-unggulan)
 4. [Arsitektur API](#4-arsitektur-api)
 5. [Autentikasi API](#5-autentikasi-api)
-6. [Endpoint](#6-endpoint)
-   - [6.1 Autentikasi](#61-autentikasi)
-   - [6.2 Keuangan (Finance)](#62-keuangan-finance)
-   - [6.3 Paylater](#63-paylater)
-   - [6.4 Dashboard Anak (Kid)](#64-dashboard-anak-kid)
-   - [6.5 Dashboard Orang Tua (Parent)](#65-dashboard-orang-tua-parent)
-7. [Ringkasan Endpoint](#7-ringkasan-endpoint)
-8. [Referensi Kode Error](#8-referensi-kode-error)
+6. [Setup & Konfigurasi](#6-setup--konfigurasi)
+7. [Endpoint](#7-endpoint)
+   - [7.1 Autentikasi](#71-autentikasi)
+   - [7.2 Keuangan (Finance)](#72-keuangan-finance)
+   - [7.3 Paylater](#73-paylater)
+   - [7.4 Dashboard Anak (Kid)](#74-dashboard-anak-kid)
+   - [7.5 Dashboard Orang Tua (Parent)](#75-dashboard-orang-tua-parent)
+8. [Ringkasan Endpoint](#8-ringkasan-endpoint)
+9. [Referensi Kode Error](#9-referensi-kode-error)
 
 ---
 
@@ -114,11 +115,84 @@ Authorization: Bearer <token>
 
 ---
 
-## 6. Endpoint
+---
+
+## 6. Setup & Konfigurasi
+
+Ikuti langkah-langkah di bawah ini untuk menjalankan project ini di lingkungan lokal atau melakukan deployment.
+
+### 6.1 Instalasi Awal
+
+1. Clone repositori ini:
+   ```bash
+   git clone https://github.com/username/KidBankerAPI.git
+   cd KidBankerAPI
+   ```
+2. Install dependensi:
+   ```bash
+   npm install
+   ```
+
+### 6.2 Konfigurasi Environment (.env)
+
+Salin file `.env.example` menjadi `.env` dan isi variabel yang diperlukan:
+
+```bash
+cp .env.example .env
+```
+
+**Variabel yang harus diisi:**
+- `PORT`: Port server (contoh: 3000)
+- `SUPABASE_URL`: URL project Supabase Anda
+- `SUPABASE_SERVICE_KEY`: Service Role Key dari Supabase
+- `GOOGLE_CLIENT_ID`: Client ID dari Google Cloud Console
+- `GOOGLE_CLIENT_SECRET`: Client Secret dari Google Cloud Console
+- `GOOGLE_CALLBACK_URL`: URL Callback OAuth (contoh: `http://localhost:3000/auth/google/callback`)
+- `JWT_SECRET`: String acak untuk enkripsi JWT
+
+### 6.3 Setup Google Cloud Console
+
+Untuk menggunakan fitur Google Login dan Google Calendar, Anda perlu melakukan setup di [Google Cloud Console](https://console.cloud.google.com/):
+
+1. **Buat Project Baru**: Klik "Select a project" > "New Project".
+2. **Aktifkan API references**:
+   - Cari dan aktifkan **Google Calendar API**.
+3. **Konfigurasi OAuth Consent Screen**:
+   - Pilih User Type: **External**.
+   - Isi User Support Email dan Developer Contact Information.
+   - Tambahkan scopes: `.../auth/calendar.events`, `.../auth/userinfo.email`, `.../auth/userinfo.profile`.
+4. **Buat Credentials**:
+   - Klik **Create Credentials** > **OAuth client ID**.
+   - Application Type: **Web application**.
+   - Tambahkan **Authorized redirect URIs**: Sesuaikan dengan `GOOGLE_CALLBACK_URL` di `.env` Anda.
+   - Simpan `Client ID` dan `Client Secret` ke dalam file `.env`.
+
+### 6.4 Setup Supabase & Database
+
+Project ini menggunakan Supabase sebagai database PostgreSQL. Ikuti langkah ini untuk setup table:
+
+1. Buat project baru di [Supabase Dashboard](https://supabase.com/).
+2. Buka menu **SQL Editor**.
+3. Copy dan paste isi dari file [supabase_schema.sql](./supabase_schema.sql) ke dalam SQL Editor.
+4. Klik **Run** untuk membuat seluruh table dan relasi yang diperlukan.
+
+#### Skema Database (Overview)
+
+| Table             | Deskripsi                                           |
+| ---               | ---                                                 |
+| `users`           | Data pengguna, role (Parent/Kid), dan token Google  |
+| `transactions`    | Catatan pemasukan dan pengeluaran                   |
+| `savings`         | Saldo tabungan kumulatif per pengguna               |
+| `paylater`        | Pengajuan pinjaman anak dan status persetujuan      |
+| `activity_logs`   | Audit trail untuk aktivitas pengguna                |
 
 ---
 
-### 6.1 Autentikasi
+## 7. Endpoint
+
+---
+
+### 7.1 Autentikasi
 
 Endpoint autentikasi menangani proses login, registrasi, dan pengaitan akun antar pengguna.
 
@@ -321,7 +395,7 @@ Menghubungkan akun Anak dengan akun Orang Tua menggunakan `parent_code`. Endpoin
 
 ---
 
-### 6.2 Keuangan (Finance)
+### 7.2 Keuangan (Finance)
 
 Endpoint keuangan menangani pencatatan transaksi dan pemantauan saldo tabungan. Akses bersifat bergantung pada peran pengguna.
 
@@ -522,7 +596,7 @@ Mengambil informasi saldo tabungan. Peran `KID` mendapatkan data tabungan milikn
 
 ---
 
-### 6.3 Paylater
+### 7.3 Paylater
 
 Endpoint paylater menangani alur pengajuan, persetujuan, dan penolakan pinjaman yang memerlukan otorisasi dari Orang Tua.
 
@@ -823,7 +897,7 @@ Menolak pengajuan paylater yang statusnya masih `PENDING`. Hanya dapat diakses o
 
 ---
 
-### 6.4 Dashboard Anak (Kid)
+### 7.4 Dashboard Anak (Kid)
 
 Kumpulan endpoint berikut digunakan untuk menampilkan data statistik dan ringkasan pada dashboard Anak. Seluruh endpoint dalam kelompok ini hanya dapat diakses oleh pengguna dengan peran `KID` dan wajib menyertakan token autentikasi yang valid.
 
@@ -1430,7 +1504,7 @@ Mengambil seluruh riwayat transaksi milik Anak dengan dukungan paginasi.
 
 ---
 
-### 6.5 Dashboard Orang Tua (Parent)
+### 7.5 Dashboard Orang Tua (Parent)
 
 Kumpulan endpoint berikut digunakan untuk menampilkan data statistik dan ringkasan pada dashboard Orang Tua. Seluruh endpoint dalam kelompok ini hanya dapat diakses oleh pengguna dengan peran `PARENT` dan wajib menyertakan token autentikasi yang valid.
 
@@ -2026,7 +2100,7 @@ Mengambil rekap jumlah paylater berdasarkan status dari seluruh riwayat paylater
 
 ---
 
-## 7. Ringkasan Endpoint
+## 8. Ringkasan Endpoint
 
 | No. | Method  | Endpoint                          | Autentikasi | Peran       | Deskripsi                                           |
 | --- | ------- | --------------------------------- | ----------- | ----------- | --------------------------------------------------- |
@@ -2067,7 +2141,7 @@ Mengambil rekap jumlah paylater berdasarkan status dari seluruh riwayat paylater
 
 ---
 
-## 8. Referensi Kode Error
+## 9. Referensi Kode Error
 
 Seluruh endpoint menggunakan format dan kode HTTP error yang konsisten berikut ini.
 
