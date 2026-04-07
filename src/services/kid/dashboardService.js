@@ -49,7 +49,7 @@ const getMonthRange = () => {
 exports.getProfileInfo = async (userId) => {
   const { data: user, error } = await supabase
     .from("users")
-    .select("*")
+    .select("name, parent_id, parent_code")
     .eq("id", userId)
     .single();
 
@@ -74,11 +74,14 @@ exports.getProfileInfo = async (userId) => {
   };
 };
 
+// alias for aggregate dashboard
+exports.getProfile = exports.getProfileInfo;
+
 // get my savings
 exports.getMySavings = async (userId) => {
   const { data: savings } = await supabase
     .from("savings")
-    .select("*")
+    .select("total_balance")
     .eq("user_id", userId)
     .single();
 
@@ -258,7 +261,7 @@ exports.getWeeklyTransactions = async (userId) => {
 
   const { data } = await supabase
     .from("transactions")
-    .select("*")
+    .select("created_at, type, amount")
     .eq("user_id", userId)
     .gte("created_at", monday.toISOString())
     .lte("created_at", sunday.toISOString());
@@ -322,12 +325,15 @@ exports.getMonthlyOverview = async (userId) => {
 
 // get all transactions with pagination
 exports.getTransactions = async (userId, page = 1, limit = 10) => {
-  const from = (page - 1) * limit;
-  const to = from + limit - 1;
+  const parsedPage = parseInt(page, 10) || 1;
+  const parsedLimit = parseInt(limit, 10) || 10;
+
+  const from = (parsedPage - 1) * parsedLimit;
+  const to = from + parsedLimit - 1;
 
   const { data, count } = await supabase
     .from("transactions")
-    .select("*", { count: "exact" })
+    .select("id, type, amount, description, created_at", { count: "exact" })
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
     .range(from, to);
@@ -336,14 +342,17 @@ exports.getTransactions = async (userId, page = 1, limit = 10) => {
     data,
     pagination: {
       total: count,
-      per_page: limit,
-      current_page: page,
-      last_page: Math.ceil(count / limit),
-      has_next_page: page * limit < count,
-      has_prev_page: page > 1,
+      per_page: parsedLimit,
+      current_page: parsedPage,
+      last_page: Math.ceil(count / parsedLimit),
+      has_next_page: parsedPage * parsedLimit < count,
+      has_prev_page: parsedPage > 1,
     },
   };
 };
+
+// alias for aggregate dashboard (summary = savings overview)
+exports.getSummary = exports.getMySavings;
 
 // get last 5 transactions
 exports.getLastTransactions = async (userId) => {
@@ -361,7 +370,7 @@ exports.getLastTransactions = async (userId) => {
 exports.getPaylaterOverview = async (userId) => {
   const { data } = await supabase
     .from("paylater")
-    .select("*")
+    .select("name, amount, deadline, status")
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
     .limit(5);
@@ -376,6 +385,9 @@ exports.getPaylaterOverview = async (userId) => {
     })) || []
   );
 };
+
+// alias for aggregate dashboard
+exports.getPaylater = exports.getPaylaterOverview;
 
 // get reminder paylater
 exports.getPaylaterReminder = async (userId) => {

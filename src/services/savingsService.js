@@ -5,7 +5,7 @@ exports.getSavings = async (userId, role) => {
   if (role === "KID") {
     const { data, error } = await supabase
       .from("savings")
-      .select("*")
+      .select("id, user_id, total_balance")
       .eq("user_id", userId)
       .single();
 
@@ -23,7 +23,7 @@ exports.getSavings = async (userId, role) => {
 
     const { data } = await supabase
       .from("savings")
-      .select("*")
+      .select("id, user_id, total_balance")
       .eq("user_id", kid.id)
       .single();
 

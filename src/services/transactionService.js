@@ -22,7 +22,7 @@ exports.createTransaction = async (userId, { type, amount, description }) => {
   // get current savings
   const { data: savings } = await supabase
     .from("savings")
-    .select("*")
+    .select("total_balance")
     .eq("user_id", userId)
     .single();
 
@@ -71,7 +71,7 @@ exports.getTransactions = async (userId, role) => {
   if (role === "KID") {
     const { data } = await supabase
       .from("transactions")
-      .select("*")
+      .select("id, type, amount, description, created_at")
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
 
@@ -87,7 +87,7 @@ exports.getTransactions = async (userId, role) => {
 
     const { data } = await supabase
       .from("transactions")
-      .select("*")
+      .select("id, type, amount, description, created_at")
       .eq("user_id", kid.id)
       .order("created_at", { ascending: false });
 

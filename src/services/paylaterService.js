@@ -41,7 +41,7 @@ exports.getRequests = async (parentId) => {
 
   const { data } = await supabase
     .from("paylater")
-    .select("*")
+    .select("id, name, amount, deadline, status, created_at, approved_at")
     .eq("user_id", kid.id)
     .order("created_at", { ascending: false });
 
@@ -52,7 +52,7 @@ exports.getRequests = async (parentId) => {
 exports.approvePaylater = async (parentId, paylaterId) => {
   const { data: existing } = await supabase
     .from("paylater")
-    .select("*")
+    .select("id, name, amount, deadline, status, calendar_event_id, user_id")
     .eq("id", paylaterId)
     .single();
 
@@ -82,13 +82,13 @@ exports.approvePaylater = async (parentId, paylaterId) => {
 
   const { data: kid } = await supabase
     .from("users")
-    .select("*")
+    .select("name, google_refresh_token")
     .eq("id", existing.user_id)
     .single();
 
   const { data: parent } = await supabase
     .from("users")
-    .select("*")
+    .select("name, google_refresh_token")
     .eq("id", parentId)
     .single();
 
@@ -199,7 +199,7 @@ exports.approvePaylater = async (parentId, paylaterId) => {
 exports.rejectPaylater = async (parentId, paylaterId) => {
   const { data: existing } = await supabase
     .from("paylater")
-    .select("*")
+    .select("id, status")
     .eq("id", paylaterId)
     .single();
 

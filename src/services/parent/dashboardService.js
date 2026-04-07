@@ -238,7 +238,7 @@ exports.getWeeklyTransactions = async (parentId) => {
 
   const { data } = await supabase
     .from("transactions")
-    .select("*")
+    .select("created_at, type, amount")
     .eq("user_id", kidId)
     .gte("created_at", monday.toISOString())
     .lte("created_at", sunday.toISOString());
