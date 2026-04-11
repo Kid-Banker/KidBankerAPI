@@ -56,21 +56,23 @@ exports.getProfileInfo = async (userId) => {
   if (error) throw error;
 
   let parentName = null;
+  let parentCode = null;
 
   if (user.parent_id) {
     const { data: parent } = await supabase
       .from("users")
-      .select("name")
+      .select("name, parent_code")
       .eq("id", user.parent_id)
       .single();
 
     parentName = parent?.name || null;
+    parentCode = parent?.parent_code || null;
   }
 
   return {
     name: user.name,
     parent_name: parentName,
-    parent_code: user.parent_code || "-",
+    parent_code: parentCode || "-",
   };
 };
 
