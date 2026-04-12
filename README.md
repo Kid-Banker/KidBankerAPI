@@ -1,7 +1,7 @@
 # Kid Banker API — Documentation
 
-**Versi:** 1.3.0 <br>
-**Terakhir Diperbarui:** 6 April 2026 <br>
+**Versi:** 1.4.0 <br>
+**Terakhir Diperbarui:** 12 April 2026 <br>
 **Base URL:** `https://api-kidbanker.vercel.app`
 
 ---
@@ -1921,6 +1921,7 @@ Mengambil seluruh riwayat paylater Anak yang terhubung beserta status dan inform
 ```json
 [
   {
+    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
     "name": "Buku Pelajaran Semester Baru",
     "amount": 50000,
     "deadline": "2026-04-15",
