@@ -397,7 +397,7 @@ exports.getPaylaterOverview = async (parentId) => {
 
   const { data } = await supabase
     .from("paylater")
-    .select("name, amount, status, deadline, approved_at")
+    .select("id, name, amount, status, deadline, approved_at")
     .eq("user_id", kidId)
     .order("created_at", { ascending: false });
 
