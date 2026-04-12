@@ -402,7 +402,7 @@ exports.getPaylaterOverview = async (parentId) => {
     .order("created_at", { ascending: false });
 
   return data || [];
-};
+}; 
 
 // get paylater status
 exports.getPaylaterStatus = async (parentId) => {
