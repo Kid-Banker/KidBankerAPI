@@ -1,7 +1,7 @@
 # Kid Banker API — Documentation
 
-**Versi:** 1.4.0 <br>
-**Terakhir Diperbarui:** 12 April 2026 <br>
+**Versi:** 1.5.0 <br>
+**Terakhir Diperbarui:** 20 April 2026 <br>
 **Base URL:** `https://api-kidbanker.vercel.app`
 
 ---
@@ -232,6 +232,7 @@ Melakukan autentikasi pengguna menggunakan Google OAuth. Jika pengguna sudah ter
     "role": "PARENT",
     "google_id": "112345678901234567890",
     "parent_code": "A1B2C3",
+    "profile_picture": "https://lh3.googleusercontent.com/a/...",
     "google_refresh_token": "1//0eXx..."
   }
 }
@@ -285,6 +286,7 @@ Mendaftarkan pengguna baru ke dalam sistem. Jika peran yang dipilih adalah `PARE
   "email": "andikasatrionurcahyo@kidbanker.id",
   "google_id": "112345678901234567890",
   "role": "PARENT",
+  "profile_picture": "https://lh3.googleusercontent.com/a/...",
   "google_refresh_token": "1//0eXx..."
 }
 ```
@@ -295,6 +297,7 @@ Mendaftarkan pengguna baru ke dalam sistem. Jika peran yang dipilih adalah `PARE
 | `email`                | `string` | Ya    | Alamat email pengguna                    |
 | `google_id`            | `string` | Ya    | Google ID yang diperoleh dari alur OAuth |
 | `role`                 | `string` | Ya    | Peran pengguna: `PARENT` atau `KID`      |
+| `profile_picture`      | `string` | Tidak | URL foto profil dari Google              |
 | `google_refresh_token` | `string` | Ya    | Google Refresh Token                     |
 
 **Response `200`:**
@@ -309,6 +312,7 @@ Mendaftarkan pengguna baru ke dalam sistem. Jika peran yang dipilih adalah `PARE
     "role": "PARENT",
     "google_id": "112345678901234567890",
     "parent_code": "A1B2C3",
+    "profile_picture": "https://lh3.googleusercontent.com/a/...",
     "google_refresh_token": "1//0eXx..."
   }
 }
@@ -918,7 +922,8 @@ Mengambil informasi profil dasar dari akun Anak, termasuk nama Orang Tua dan kod
 {
   "name": "Andika Satrio Nurcahyo",
   "parent_name": "Nama Orang Tua",
-  "parent_code": "A1B2C3"
+  "parent_code": "A1B2C3",
+  "profile_picture": "https://lh3.googleusercontent.com/a/..."
 }
 ```
 
@@ -1525,7 +1530,8 @@ Mengambil informasi profil dasar dari akun Orang Tua beserta nama Anak yang terh
 {
   "name": "Andika Satrio Nurcahyo",
   "kid_name": "Nama Anak",
-  "parent_code": "A1B2C3"
+  "parent_code": "A1B2C3",
+  "profile_picture": "https://lh3.googleusercontent.com/a/..."
 }
 ```
 
