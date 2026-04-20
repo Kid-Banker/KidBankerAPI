@@ -10,6 +10,7 @@ CREATE TABLE users (
     parent_code VARCHAR(50) UNIQUE, -- Only for PARENT role
     parent_id UUID REFERENCES users(id) ON DELETE SET NULL, -- Only for KID role
     google_refresh_token VARCHAR(500), -- For Google Calendar integration
+    profile_picture VARCHAR(500), -- For profile picture
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
