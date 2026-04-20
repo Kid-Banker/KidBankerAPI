@@ -14,6 +14,7 @@ async function verifyGoogleToken(idToken) {
     google_id: payLoad.sub,
     email: payLoad.email,
     name: payLoad.name,
+    picture: payLoad.picture,
   };
 }
 

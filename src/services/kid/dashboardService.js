@@ -49,7 +49,7 @@ const getMonthRange = () => {
 exports.getProfileInfo = async (userId) => {
   const { data: user, error } = await supabase
     .from("users")
-    .select("name, parent_id, parent_code")
+    .select("name, parent_id, parent_code, profile_picture")
     .eq("id", userId)
     .single();
 
@@ -61,7 +61,7 @@ exports.getProfileInfo = async (userId) => {
   if (user.parent_id) {
     const { data: parent } = await supabase
       .from("users")
-      .select("name, parent_code")
+      .select("name, profile_picture, parent_code")
       .eq("id", user.parent_id)
       .single();
 
@@ -73,6 +73,7 @@ exports.getProfileInfo = async (userId) => {
     name: user.name,
     parent_name: parentName,
     parent_code: parentCode || "-",
+    profile_picture: user.profile_picture || null,
   };
 };
 

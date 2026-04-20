@@ -25,7 +25,10 @@ exports.googleLogin = async (req, res) => {
       // update refresh token on every login
       await supabase
         .from("users")
-        .update({ google_refresh_token: google_refresh_token })
+        .update({
+          google_refresh_token: google_refresh_token,
+          profile_picture: googleUser.picture,
+        })
         .eq("id", user.id);
 
       const token = jwt.sign(
@@ -45,7 +48,11 @@ exports.googleLogin = async (req, res) => {
 
       return res.json({
         token,
-        user: { ...user, google_refresh_token: google_refresh_token },
+        user: {
+          ...user,
+          google_refresh_token: google_refresh_token,
+          profile_picture: googleUser.picture,
+        },
       });
     }
 
@@ -62,7 +69,14 @@ exports.googleLogin = async (req, res) => {
 // register controller
 exports.register = async (req, res) => {
   try {
-    const { name, email, google_id, role, google_refresh_token } = req.body;
+    const {
+      name,
+      email,
+      google_id,
+      role,
+      google_refresh_token,
+      profile_picture,
+    } = req.body;
 
     if (!google_refresh_token) {
       return res.status(400).json({
@@ -85,6 +99,7 @@ exports.register = async (req, res) => {
           google_id,
           role,
           parent_code,
+          profile_picture,
           google_refresh_token,
         },
       ])
